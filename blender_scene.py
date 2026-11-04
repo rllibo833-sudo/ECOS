@@ -17,10 +17,11 @@ scene=bpy.context.scene
 scene.render.engine='BLENDER_EEVEE'
 scene.render.resolution_x=W; scene.render.resolution_y=H; scene.render.resolution_percentage=100
 scene.render.fps=FPS; scene.frame_start=1; scene.frame_end=45*FPS
-scene.render.image_settings.file_format='FFMPEG'
-scene.render.ffmpeg.format='MPEG4'; scene.render.ffmpeg.codec='H264'
-scene.render.ffmpeg.constant_rate_factor='MEDIUM'; scene.render.ffmpeg.audio_codec='NONE'
-scene.render.filepath=os.path.abspath(OUT)
+FRAME_DIR=os.path.abspath('ecos_frames')
+os.makedirs(FRAME_DIR, exist_ok=True)
+scene.render.image_settings.file_format='PNG'
+scene.render.image_settings.color_mode='RGB'
+scene.render.filepath=os.path.join(FRAME_DIR, 'frame_')
 scene.world.color=(0.025,0.04,0.065)
 scene.view_settings.view_transform='AgX'
 scene.render.film_transparent=False
