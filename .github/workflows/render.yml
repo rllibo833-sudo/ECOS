@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - "blender_scene.py"
       - "trailer.py"
       - "requirements.txt"
       - ".github/workflows/render.yml"
@@ -14,27 +15,29 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install dependencies
+      - name: Install Blender, FFmpeg and Python
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y blender ffmpeg
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Render MP4
-        run: python trailer.py --output ecos-world-trailer.mp4 --fps 24 --width 1280 --height 720
-      - name: Upload trailer
+      - name: Render 3D ECOS world
+        run: |
+          blender --background --threads 2 --python blender_scene.py -- --output ecos-world-silent.mp4 --fps 24 --width 1280 --height 720
+      - name: Add original cinematic score
+        run: |
+          python -c "from trailer import make_audio; make_audio('ecos-score.wav')"
+          ffmpeg -y -i ecos-world-silent.mp4 -i ecos-score.wav -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart ecos-world-trailer.mp4
+      - name: Upload trailer and editable Blender scene
         uses: actions/upload-artifact@v4
         with:
           name: ecos-world-trailer
-          path: ecos-world-trailer.mp4
+          path: |
+            ecos-world-trailer.mp4
+            ecos-world.blend
           if-no-files-found: error
           retention-days: 14
