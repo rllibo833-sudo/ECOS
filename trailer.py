@@ -136,7 +136,7 @@ def world_scene(t, w, h):
             d.text((w*.755,h*.505+j*22),line,font=font(max(12,int(w/95))),fill=(119,210,174,255))
         centered(d,(w*.5,h*.14),"A WORLD THAT MOVES",font(int(w*.026),True),(242,231,207,235))
     elif kind=="regions":
-        idx=int((t-15)//2.5)
+        idx=int((t-15)//(10/6))
         # each quick vignette gets its own recognizable landmark
         if idx%4==0: # port
             for i in range(5):
