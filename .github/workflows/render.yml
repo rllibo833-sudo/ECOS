@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
       - name: Render 3D ECOS world
         run: |
-          blender --background --threads 2 --python blender_scene.py -- --output ecos-world-silent.mp4 --fps 24 --width 1280 --height 720
+          blender --background --threads 2 --python-exit-code 1 --python blender_scene.py -- --output ecos-world-silent.mp4 --fps 24 --width 1280 --height 720
       - name: Add original cinematic score
         run: |
           python -c "from trailer import make_audio; make_audio('ecos-score.wav')"
