@@ -300,10 +300,8 @@ def camera_text(body, frame_start, frame_end, y, size, material):
 camera_text("ECOS WORLD",900,1080,-.8,1.25,M["ivory"])
 camera_text("ONE WORLD. COUNTLESS PLACES TO DISCOVER.",930,1080,-1.65,.28,M["white"])
 
-# Gentle cinematic contrast and bloom.
-scene.use_nodes=True; nt=scene.node_tree; nt.nodes.clear()
-rl=nt.nodes.new("CompositorNodeRLayers"); glare=nt.nodes.new("CompositorNodeGlare"); glare.glare_type='FOG_GLOW'; glare.quality='MEDIUM'; glare.threshold=1.5
-comp=nt.nodes.new("CompositorNodeComposite"); nt.links.new(rl.outputs["Image"],glare.inputs["Image"]); nt.links.new(glare.outputs["Image"],comp.inputs["Image"])
+# Blender 5 compositor API moved away from Scene.node_tree.
+# Keep the render pipeline API-stable; cinematic lighting is already provided by the scene.
 # Slightly soft focus at distance; motion remains smooth from camera animation.
 scene.camera.data.lens=38
 scene.frame_set(1)
