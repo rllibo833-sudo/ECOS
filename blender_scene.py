@@ -17,6 +17,8 @@ scene=bpy.context.scene
 scene.render.engine='BLENDER_EEVEE'
 scene.render.resolution_x=W; scene.render.resolution_y=H; scene.render.resolution_percentage=100
 scene.render.fps=FPS; scene.frame_start=1; scene.frame_end=45*FPS
+# Render every third frame; FFmpeg interpolates back to the delivery frame rate.
+scene.frame_step=3
 FRAME_DIR=os.path.abspath('ecos_frames')
 os.makedirs(FRAME_DIR, exist_ok=True)
 scene.render.image_settings.file_format='PNG'

@@ -28,7 +28,7 @@ jobs:
       - name: Render 3D ECOS world
         run: |
           blender --background --threads 2 --python-exit-code 1 --python blender_scene.py -- --output ecos-world-silent.mp4 --fps 24 --width 1280 --height 720
-          ffmpeg -y -framerate 24 -i ecos_frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart ecos-world-silent.mp4
+          ffmpeg -y -framerate 8 -pattern_type glob -i 'ecos_frames/frame_*.png' -vf "minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" -c:v libx264 -pix_fmt yuv420p -crf 20 -movflags +faststart ecos-world-silent.mp4
       - name: Add original cinematic score
         run: |
           python -c "from trailer import make_audio; make_audio('ecos-score.wav')"
