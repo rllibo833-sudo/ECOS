@@ -286,10 +286,8 @@ shot(361,(-25,44,23),(0,78,4)); shot(600,(0,284,35),(0,245,5))
 shot(601,(0,-255,42),(0,-183,4)); shot(840,(36,-234,34),(0,-183,6))
 # 35-45 pullback to horizon/world scale
 shot(841,(0,-208,24),(0,-160,3)); shot(1080,(0,-330,145),(0,25,0))
-for obj in (cam,focus):
-    if obj.animation_data and obj.animation_data.action:
-        for fc in obj.animation_data.action.fcurves:
-            for kp in fc.keyframe_points: kp.interpolation='BEZIER'
+# Blender 5 uses layered Actions without the legacy Action.fcurves API.
+# Blender's default keyframe interpolation is Bezier, so no manual pass is needed.
 
 # Title cards are camera-facing planes parented to camera, timed for final reveal.
 def camera_text(body, frame_start, frame_end, y, size, material):
