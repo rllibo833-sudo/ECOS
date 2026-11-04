@@ -14,8 +14,7 @@ OUT=arg("--output","ecos-world-trailer.mp4")
 FPS=int(arg("--fps","24")); W=int(arg("--width","1280")); H=int(arg("--height","720"))
 random.seed(24)
 scene=bpy.context.scene
-scene.render.engine='BLENDER_EEVEE_NEXT'
-scene.eevee.taa_render_samples=16
+scene.render.engine='BLENDER_EEVEE'
 scene.render.resolution_x=W; scene.render.resolution_y=H; scene.render.resolution_percentage=100
 scene.render.fps=FPS; scene.frame_start=1; scene.frame_end=45*FPS
 scene.render.image_settings.file_format='FFMPEG'
