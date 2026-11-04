@@ -1,0 +1,40 @@
+name: Render ECOS World Trailer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "trailer.py"
+      - "requirements.txt"
+      - ".github/workflows/render.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Render MP4
+        run: python trailer.py --output ecos-world-trailer.mp4 --fps 24 --width 1280 --height 720
+      - name: Upload trailer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecos-world-trailer
+          path: ecos-world-trailer.mp4
+          if-no-files-found: error
+          retention-days: 14
