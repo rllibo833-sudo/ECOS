@@ -34,7 +34,7 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != IMPORT_REQUEST || resultCode != RESULT_OK || data == null) return
         val uris = buildList {
-            data.data?.let(::add)
+            data.data?.let { add(it) }
             data.clipData?.let { clip -> for (i in 0 until clip.itemCount) add(clip.getItemAt(i).uri) }
         }.distinct()
         Toast.makeText(this, "Importing ${uris.size} file(s)…", Toast.LENGTH_SHORT).show()
