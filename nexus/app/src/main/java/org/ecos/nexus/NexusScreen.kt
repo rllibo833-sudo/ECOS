@@ -137,8 +137,8 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         source.lines().forEach { line ->
             val clean = line.trim()
             when {
-                clean.startsWith("# ") -> plain.append(clean.removePrefix("# ").uppercase()).append("\\n\\n")
-                clean.startsWith("## ") -> plain.append(clean.removePrefix("## ")).append("\\n\\n")
+                clean.startsWith("# ") -> plain.append(clean.removePrefix("# ").uppercase()).append("\n\n")
+                clean.startsWith("## ") -> plain.append(clean.removePrefix("## ")).append("\n\n")
                 clean.startsWith("### ") -> plain.append(clean.removePrefix("### ")).append("\n")
                 clean.startsWith("- ") || clean.startsWith("* ") -> plain.append("• ").append(clean.drop(2)).append("\n")
                 clean.startsWith("> ") -> plain.append("  ").append(clean.drop(2)).append("\n")
