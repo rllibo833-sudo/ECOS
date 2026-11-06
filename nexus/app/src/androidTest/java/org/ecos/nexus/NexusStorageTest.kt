@@ -2,6 +2,8 @@ package org.ecos.nexus
 
 import android.content.Context
 import android.content.ContentProvider
+import android.content.ContentResolver
+import android.content.res.AssetFileDescriptor
 import android.content.ContentValues
 import android.content.ContextWrapper
 import android.content.pm.ProviderInfo
@@ -10,7 +12,6 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
-import android.test.mock.MockContentResolver
 import java.io.FileNotFoundException
 import java.io.IOException
 import androidx.test.core.app.ApplicationProvider
@@ -71,10 +72,17 @@ class NexusStorageTest {
     }
 
     private fun fixtureContext(name: String, bytes: ByteArray, failAfter: Int? = null): Pair<Context, Uri> {
-        val resolver = MockContentResolver()
         val provider = FixtureProvider(name, bytes, failAfter)
         provider.attachInfo(context, ProviderInfo().apply { authority = "nexus.fixture" })
-        resolver.addProvider("nexus.fixture", provider)
+        val resolver = object : ContentResolver(context) {
+            override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? =
+                provider.query(uri, projection, selection, selectionArgs, sortOrder)
+            override fun getType(uri: Uri): String? = provider.getType(uri)
+            override fun openAssetFileDescriptor(uri: Uri, mode: String): AssetFileDescriptor {
+                val descriptor = provider.openFile(uri, mode)
+                return AssetFileDescriptor(descriptor, 0, bytes.size.toLong())
+            }
+        }
         val wrapped = object : ContextWrapper(context) {
             override fun getContentResolver() = resolver
         }
