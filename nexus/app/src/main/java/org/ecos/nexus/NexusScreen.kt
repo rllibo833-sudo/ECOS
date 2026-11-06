@@ -62,6 +62,9 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         actions.addView(button("+ IMPORT FILES") { (context as? MainActivity)?.importFiles() }, LayoutParams(0, dp(44), 1f))
         actions.addView(button("NEW ARTICLE") { createArticle() }, LayoutParams(0, dp(44), 1f).apply { marginStart = dp(8) })
         content.addView(actions)
+        card("GRANT MEDIA ACCESS", "Optional: allow Nexus to browse device photos, videos, and audio. Document import uses the system picker.") {
+            (context as? MainActivity)?.requestMediaPermissions()
+        }
         val search = EditText(context).apply {
             hint = "Search your archive"; setHintTextColor(muted); setTextColor(ink); textSize = 14f
             inputType = InputType.TYPE_CLASS_TEXT
