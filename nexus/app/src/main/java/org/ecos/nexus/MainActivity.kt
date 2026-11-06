@@ -37,14 +37,20 @@ class MainActivity : Activity() {
             data.data?.let(::add)
             data.clipData?.let { clip -> for (i in 0 until clip.itemCount) add(clip.getItemAt(i).uri) }
         }.distinct()
-        var count = 0
-        uris.forEach { uri ->
-            if (runCatching { library.importUri(uri) }.getOrDefault(false)) count++
-        }
-        library.all().forEach(graph::ensureAssetNode)
-        graph.refreshSuggestions(library.all())
-        ui.showLibrary()
-        Toast.makeText(this, "$count file(s) imported", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Importing ${uris.size} file(s)…", Toast.LENGTH_SHORT).show()
+        Thread {
+            var count = 0
+            uris.forEach { uri ->
+                if (runCatching { library.importUri(uri) }.getOrDefault(false)) count++
+            }
+            val assets = library.all()
+            assets.forEach(graph::ensureAssetNode)
+            graph.refreshSuggestions(assets)
+            runOnUiThread {
+                ui.showLibrary()
+                Toast.makeText(this, "$count file(s) imported", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
     }
 
     companion object { private const val IMPORT_REQUEST = 4101 }
