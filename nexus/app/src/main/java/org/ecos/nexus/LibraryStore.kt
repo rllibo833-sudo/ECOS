@@ -108,6 +108,7 @@ class LibraryStore(private val context: Context) {
         return when {
             mime.startsWith("image/") -> "image"
             mime.startsWith("video/") -> "video"
+            mime.startsWith("audio/") -> "audio"
             ext == "zip" -> "archive"
             ext in setOf("7z", "rar") -> "unsupported-archive"
             ext in setOf("md", "markdown", "mdx") -> "markdown"
