@@ -116,11 +116,12 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 if (entries.isEmpty()) card("Archive could not be read", "Unsupported, damaged, or empty ZIP file") {}
                 entries.forEach { e -> card(e.name, if (e.directory) "Folder" else readableSize(e.size)) {} }
             }
-            "image", "video", "package", "other" -> {
+            "image", "video", "package", "pdf", "office", "other" -> {
                 card("Open with Android", "Uses an installed viewer. Nexus keeps the original file locally.") {
                     runCatching { inspector.openExternal(asset) }.onFailure { Toast.makeText(context, it.message ?: "No compatible viewer", Toast.LENGTH_LONG).show() }
                 }
             }
+            "unsupported-archive" -> card("Unsupported archive format", "ZIP is supported for read-only inspection; 7z and RAR are not yet supported.") {}
             else -> card("Open with Android", "External viewer") { runCatching { inspector.openExternal(asset) } }
         }
         card("BACK TO LIBRARY", "Return to your archive") { showLibrary() }
@@ -137,7 +138,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 clean.startsWith("- ") || clean.startsWith("* ") -> out.append("• ").append(clean.drop(2)).append("\n")
                 clean.startsWith("> ") -> out.append("  ").append(clean.drop(2)).append("\n")
                 clean.isBlank() -> out.append("\n")
-                else -> out.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "$1").replace(Regex("\\*(.+?)\\*"), "$1")).append("\n")
+                else -> out.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\$1").replace(Regex("\\*(.+?)\\*"), "$1")).append("\n")
             }
         }
         return out
