@@ -97,4 +97,28 @@ class NexusStorageTest {
         assertFalse(File(context.filesDir.parentFile, "outside.txt").exists())
     }
 
+    @Test fun importedPdfCanBeRenderedOfflineByNexusReader() {
+        val library = File(context.filesDir, "library").apply { mkdirs() }
+        val pdf = File(library, "reader-test.pdf")
+        val document = android.graphics.pdf.PdfDocument()
+        val page = document.startPage(android.graphics.pdf.PdfDocument.PageInfo.Builder(300, 400, 1).create())
+        page.canvas.drawText("Nexus offline PDF", 24f, 48f, android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG))
+        document.finishPage(page)
+        pdf.outputStream().use { document.writeTo(it) }
+        document.close()
+
+        val reader = PdfDocumentView(context, pdf)
+        assertEquals(1, reader.pageCount)
+        reader.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(600, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(1000, android.view.View.MeasureSpec.AT_MOST)
+        )
+        reader.layout(0, 0, reader.measuredWidth, reader.measuredHeight)
+        val bitmap = android.graphics.Bitmap.createBitmap(reader.measuredWidth, reader.measuredHeight, android.graphics.Bitmap.Config.ARGB_8888)
+        reader.draw(android.graphics.Canvas(bitmap))
+        assertTrue(bitmap.width > 0)
+        bitmap.recycle()
+        reader.close()
+    }
+
 }
