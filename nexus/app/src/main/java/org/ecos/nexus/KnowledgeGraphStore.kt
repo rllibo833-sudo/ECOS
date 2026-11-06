@@ -45,6 +45,22 @@ class KnowledgeGraphStore(context: Context) {
         require(title.isNotBlank()) { "Article title is required" }
         return KnowledgeNode(UUID.randomUUID().toString(), title.trim(), "article", summary = summary.trim(), body = body).also(::writeNode)
     }
+    @Synchronized fun updateArticle(id: String, title: String, body: String, summary: String = ""): KnowledgeNode {
+        require(title.isNotBlank()) { "Article title is required" }
+        val root = read()
+        val items = root.getJSONArray("nodes")
+        for (i in 0 until items.length()) {
+            val item = items.getJSONObject(i)
+            if (item.optString("id") == id && item.optString("kind") == "article") {
+                item.put("title", title.trim())
+                item.put("summary", summary.trim())
+                item.put("body", body)
+                persist(root)
+                return item.toNode()
+            }
+        }
+        error("Article no longer exists")
+    }
     @Synchronized fun addCanonical(fromId: String, toId: String, relation: String, provenance: String = "user-confirmed"): KnowledgeEdge {
         require(fromId != toId) { "A node cannot link to itself" }
         val ids = nodes().map { it.id }.toSet()
