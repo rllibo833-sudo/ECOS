@@ -139,15 +139,15 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             when {
                 clean.startsWith("# ") -> plain.append(clean.removePrefix("# ").uppercase()).append("\\n\\n")
                 clean.startsWith("## ") -> plain.append(clean.removePrefix("## ")).append("\\n\\n")
-                clean.startsWith("### ") -> plain.append(clean.removePrefix("### ")).append("\\n")
-                clean.startsWith("- ") || clean.startsWith("* ") -> plain.append("• ").append(clean.drop(2)).append("\\n")
-                clean.startsWith("> ") -> plain.append("  ").append(clean.drop(2)).append("\\n")
-                clean.isBlank() -> plain.append("\\n")
-                else -> plain.append(clean.replace(Regex("\\\\*\\\\*(.+?)\\\\*\\\\*"), "\\$1").replace(Regex("\\\\*(.+?)\\\\*"), "\\$1")).append("\\n")
+                clean.startsWith("### ") -> plain.append(clean.removePrefix("### ")).append("\n")
+                clean.startsWith("- ") || clean.startsWith("* ") -> plain.append("• ").append(clean.drop(2)).append("\n")
+                clean.startsWith("> ") -> plain.append("  ").append(clean.drop(2)).append("\n")
+                clean.isBlank() -> plain.append("\n")
+                else -> plain.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\\$1").replace(Regex("\\*(.+?)\\*"), "\\$1")).append("\n")
             }
         }
         val links = SpannableStringBuilder(plain)
-        val pattern = Regex("\\\\[\\\\[([^\\\\]]+)\\\\]\\\\]")
+        val pattern = Regex("\\[\\[([^\\]]+)\\]\\]")
         pattern.findAll(links).toList().asReversed().forEach { match ->
             val title = match.groupValues[1].trim()
             links.replace(match.range.first, match.range.last + 1, title)
