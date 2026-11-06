@@ -80,9 +80,12 @@ class LibraryStore(private val context: Context) {
     }
 
     @Synchronized fun delete(asset: LibraryAsset): Boolean {
+        val target = File(root.canonicalFile, asset.relativePath).canonicalFile
+        require(target.path.startsWith(root.canonicalPath + File.separator)) { "Invalid library path" }
         val updated = all().filterNot { it.id == asset.id }
+        if (target.exists() && !target.delete()) return false
         writeCatalog(updated)
-        return File(root, asset.relativePath).delete() || !File(root, asset.relativePath).exists()
+        return true
     }
 
     private fun writeCatalog(items: List<LibraryAsset>) {
