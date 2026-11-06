@@ -34,9 +34,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         orientation = VERTICAL
         setBackgroundColor(0xFF071321.toInt())
         setPadding(dp(18), dp(24), dp(18), dp(12))
-        addView(TextView(context).apply { text = "N E X U S"; textSize = 12f; letterSpacing = .28f; setTextColor(accent) })
-        addView(TextView(context).apply { text = "Your knowledge universe"; textSize = 25f; setTextColor(ink); setPadding(0, dp(9), 0, dp(3)) })
-        addView(TextView(context).apply { text = "A private library for everything you create."; textSize = 13f; setTextColor(muted) })
+        addView(NexusBrandHeader(context), LayoutParams(LayoutParams.MATCH_PARENT, dp(92)))
         val nav = LinearLayout(context).apply { orientation = HORIZONTAL; setPadding(0, dp(16), 0, dp(12)) }
         nav.addView(button("LIBRARY") { showLibrary() }, LayoutParams(0, dp(42), 1f))
         nav.addView(button("GRAPH") { showGraph() }, LayoutParams(0, dp(42), 1f).apply { marginStart = dp(6) })
@@ -48,20 +46,11 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         showLibrary()
     }
 
-    private fun button(label: String, action: () -> Unit) = TextView(context).apply {
-        text = label; textSize = 10f; letterSpacing = .08f; gravity = Gravity.CENTER; setTextColor(ink)
-        background = android.graphics.drawable.GradientDrawable().apply { setColor(0xFF14283D.toInt()); cornerRadius = dp(11).toFloat(); setStroke(dp(1), 0xFF294965.toInt()) }
-        setOnClickListener { action() }
-    }
+    private fun button(label: String, action: () -> Unit): View = NexusCanvasTile(context, label, compact = true, action = action)
     private fun heading(value: String) { content.addView(TextView(context).apply { text = value; textSize = 11f; letterSpacing = .12f; setTextColor(accent); setPadding(0, dp(14), 0, dp(10)) }) }
     private fun card(title: String, subtitle: String, action: () -> Unit) {
-        content.addView(LinearLayout(context).apply {
-            orientation = VERTICAL; setPadding(dp(14), dp(13), dp(14), dp(13))
-            background = android.graphics.drawable.GradientDrawable().apply { setColor(0xFF102237.toInt()); cornerRadius = dp(12).toFloat() }
-            addView(TextView(context).apply { text = title; textSize = 14f; setTextColor(ink) })
-            addView(TextView(context).apply { text = subtitle; textSize = 11f; setTextColor(muted); setPadding(0, dp(5), 0, 0) })
-            setOnClickListener { action() }
-        }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
+        content.addView(NexusCanvasTile(context, title, subtitle, action = action),
+            LayoutParams(LayoutParams.MATCH_PARENT, dp(70)).apply { bottomMargin = dp(8) })
     }
 
     fun showLibrary() {
@@ -85,14 +74,8 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             list.removeAllViews()
             val filtered = store.all().filter { it.name.contains(query, true) || it.category.contains(query, true) }
             filtered.forEach { asset ->
-                list.addView(LinearLayout(context).apply {
-                    orientation = VERTICAL
-                    setPadding(dp(14), dp(13), dp(14), dp(13))
-                    background = android.graphics.drawable.GradientDrawable().apply { setColor(0xFF102237.toInt()); cornerRadius = dp(12).toFloat() }
-                    addView(TextView(context).apply { text = asset.name; textSize = 14f; setTextColor(ink) })
-                    addView(TextView(context).apply { text = "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}"; textSize = 11f; setTextColor(muted); setPadding(0, dp(5), 0, 0) })
-                    setOnClickListener { showAsset(asset) }
-                }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
+                list.addView(NexusCanvasTile(context, asset.name, "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}", action = { showAsset(asset) }),
+                    LayoutParams(LayoutParams.MATCH_PARENT, dp(70)).apply { bottomMargin = dp(8) })
             }
             if (filtered.isEmpty()) list.addView(TextView(context).apply { text = "No matching items."; setTextColor(muted); setPadding(0, dp(16), 0, 0) })
         }
