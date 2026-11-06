@@ -45,7 +45,8 @@ Candidate relationships inferred locally from titles and bounded extracted text.
 
 - PDF: Android PdfRenderer; pages are rasterized when visible and a two-page bitmap cache bounds memory.
 - Images: bounds-first decode and downsampling to a maximum preview dimension.
-- Video: Android VideoView plays from the app-private file.
+- Video: Android VideoView plays from the app-private file. PDF renderer, video playback, and preview bitmap resources are released on navigation and view detachment.
+- Article table-of-contents entries resolve to rendered heading offsets and scroll the containing article view to the selected section.
 - Text previews and semantic extraction are bounded.
 - Graph indexing is capped to a bounded candidate set; the graph view draws a bounded number of nodes.
 - Physical Vivo Y18 performance validation remains outstanding.
