@@ -255,6 +255,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun showGraph() {
+        releaseMediaViews()
         content.removeAllViews()
         val assets = store.all()
         graph.refreshSuggestions(assets)
@@ -277,7 +278,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         semantic.forEach { edge ->
             val from = nodes.firstOrNull { it.id == edge.fromId }?.title ?: "?"
             val to = nodes.firstOrNull { it.id == edge.toId }?.title ?: "?"
-            card("$from  ≈  $to", "${edge.status} · ${edge.relation} · ${"%.0f".format(edge.score * 100)}% title-term overlap") {
+            card("$from  ≈  $to", "${edge.status} · ${edge.relation} · ${"%.0f".format(edge.score * 100)}% content-term overlap") {
                 if (edge.status == "suggested") {
                     AlertDialog.Builder(context).setTitle("Semantic suggestion")
                         .setMessage("Accept this suggestion as a reviewed semantic relation?")
@@ -311,6 +312,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun showArticles() {
+        releaseMediaViews()
         content.removeAllViews()
         val articles = graph.nodes().filter { it.kind == "article" }
         heading("ENCYCLOPEDIA · ${articles.size} ARTICLES")
@@ -338,6 +340,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun showArticle(article: KnowledgeNode) {
+        releaseMediaViews()
         content.removeAllViews()
         heading("NEXUS ARTICLE")
         content.addView(TextView(context).apply { text = article.title; textSize = 25f; setTextColor(ink); setPadding(0, dp(8), 0, dp(8)) })
