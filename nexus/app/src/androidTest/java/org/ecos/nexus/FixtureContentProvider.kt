@@ -7,7 +7,7 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
-import java.io.IOException
+import java.io.FileOutputStream
 
 class FixtureContentProvider : ContentProvider() {
     data class Payload(val name: String, val bytes: ByteArray, val failAfter: Int?)
@@ -26,12 +26,21 @@ class FixtureContentProvider : ContentProvider() {
         val payload = files[uri.path] ?: throw IllegalArgumentException("Unknown fixture")
         val pipe = ParcelFileDescriptor.createReliablePipe()
         Thread {
-            ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { output ->
-                val limit = payload.failAfter?.coerceIn(0, payload.bytes.size) ?: payload.bytes.size
-                if (limit > 0) output.write(payload.bytes, 0, limit)
-                if (payload.failAfter != null) throw IOException("Simulated interrupted provider stream")
+            try {
+                FileOutputStream(pipe[1].fileDescriptor).apply {
+                    val limit = payload.failAfter?.coerceIn(0, payload.bytes.size) ?: payload.bytes.size
+                    if (limit > 0) write(payload.bytes, 0, limit)
+                    flush()
+                }
+                if (payload.failAfter != null) {
+                    pipe[1].closeWithError("Simulated interrupted provider stream")
+                } else {
+                    pipe[1].close()
+                }
+            } catch (_: Exception) {
+                runCatching { pipe[1].closeWithError("Fixture stream failed") }
             }
-        }.apply { uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, _ -> } }.start()
+        }.start()
         return pipe[0]
     }
     override fun insert(uri: Uri, values: ContentValues?) = null
