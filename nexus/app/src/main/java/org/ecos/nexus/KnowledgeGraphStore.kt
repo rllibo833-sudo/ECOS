@@ -65,7 +65,7 @@ class KnowledgeGraphStore(context: Context) {
     }
     /** Local, explainable title-token similarity. Suggestions never become canonical automatically. */
     @Synchronized fun refreshSuggestions(assets: List<LibraryAsset>, contentFor: (LibraryAsset) -> String = { "" }) {
-        val graphNodes = assets.map(::ensureAssetNode)
+        val graphNodes = assets.take(200).map(::ensureAssetNode)
         val contentById = graphNodes.associate { node -> node.id to (assets.firstOrNull { it.id == node.assetId }?.let(contentFor).orEmpty()) }
         val existing = edges("semantic").map { setOf(it.fromId, it.toId) }.toMutableSet()
         val additions = mutableListOf<KnowledgeEdge>()
