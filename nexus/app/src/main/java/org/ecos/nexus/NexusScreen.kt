@@ -200,7 +200,27 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                     player.setOnPreparedListener { media -> media.isLooping = false; player.start() }
                 }.onFailure { card("Video preview unavailable", it.message ?: "Unsupported video") {} }
             }
-            "audio", "package", "office", "other" -> {
+            "office" -> {
+                heading("OFFLINE DOCUMENT PREVIEW")
+                val preview = TextView(context).apply {
+                    text = "Reading document…"
+                    textSize = 14f
+                    setTextColor(ink)
+                    setTextIsSelectable(true)
+                    setPadding(dp(4), dp(12), dp(4), dp(20))
+                }
+                content.addView(preview)
+                Thread {
+                    val result = runCatching { OfficeDocumentReader(context).read(asset) }
+                    preview.post {
+                        preview.text = result.getOrElse { "Preview unavailable: ${it.message}" }
+                    }
+                }.start()
+                card("OPEN FULL DOCUMENT", "Use an installed office-compatible Android app") {
+                    runCatching { inspector.openExternal(asset) }.onFailure { Toast.makeText(context, it.message ?: "No compatible viewer", Toast.LENGTH_LONG).show() }
+                }
+            }
+            "audio", "package", "other" -> {
                 card("Open with Android", "Uses an installed viewer or player. Nexus keeps the original file locally.") {
                     runCatching { inspector.openExternal(asset) }.onFailure { Toast.makeText(context, it.message ?: "No compatible viewer", Toast.LENGTH_LONG).show() }
                 }
