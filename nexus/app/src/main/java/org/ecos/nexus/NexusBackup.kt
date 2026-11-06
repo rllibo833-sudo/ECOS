@@ -23,6 +23,8 @@ class NexusBackup(private val context: Context, private val library: LibraryStor
             zip.putNextEntry(ZipEntry("knowledge.json"))
             zip.write(if (knowledge.isFile) knowledge.readBytes() else """{"nodes":[],"edges":[],"schemaVersion":1}""".toByteArray())
             zip.closeEntry()
+            zip.putNextEntry(ZipEntry("assets/"))
+            zip.closeEntry()
             library.all().forEach { asset ->
                 val file = File(root, asset.relativePath).canonicalFile
                 require(file.path.startsWith(root.canonicalPath + File.separator) && file.isFile) { "Invalid or missing asset: ${asset.name}" }
