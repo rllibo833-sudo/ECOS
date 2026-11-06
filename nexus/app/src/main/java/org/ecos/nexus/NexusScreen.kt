@@ -81,11 +81,17 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             list.removeAllViews()
             val filtered = store.all().filter { it.name.contains(query, true) || it.category.contains(query, true) }
             filtered.forEach { asset ->
-                card(asset.name, "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}") { showAsset(asset) }.also { }
+                list.addView(LinearLayout(context).apply {
+                    orientation = VERTICAL
+                    setPadding(dp(14), dp(13), dp(14), dp(13))
+                    background = android.graphics.drawable.GradientDrawable().apply { setColor(0xFF102237.toInt()); cornerRadius = dp(12).toFloat() }
+                    addView(TextView(context).apply { text = asset.name; textSize = 14f; setTextColor(ink) })
+                    addView(TextView(context).apply { text = "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}"; textSize = 11f; setTextColor(muted); setPadding(0, dp(5), 0, 0) })
+                    setOnClickListener { showAsset(asset) }
+                }, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
             }
             if (filtered.isEmpty()) list.addView(TextView(context).apply { text = "No matching items."; setTextColor(muted); setPadding(0, dp(16), 0, 0) })
         }
-        // Cards are attached to the content root by card(); initial rendering below uses the same root.
         search.addTextChangedListener(SimpleTextWatcher { render(it) })
         render("")
     }
