@@ -298,11 +298,18 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
 
     private fun createArticle() {
         val title = EditText(context).apply { hint = "Article title" }
+        val summary = EditText(context).apply { hint = "Short summary / infobox" }
         val body = EditText(context).apply { hint = "Article content (Markdown supported)"; minLines = 6; gravity = Gravity.TOP }
-        val box = LinearLayout(context).apply { orientation = VERTICAL; setPadding(dp(20), 0, dp(20), 0); addView(title); addView(body) }
+        val box = LinearLayout(context).apply {
+            orientation = VERTICAL
+            setPadding(dp(20), 0, dp(20), 0)
+            addView(title)
+            addView(summary)
+            addView(body)
+        }
         AlertDialog.Builder(context).setTitle("New article").setView(box)
             .setPositiveButton("Save") { _, _ ->
-                runCatching { graph.createArticle(title.text.toString(), body.text.toString()) }
+                runCatching { graph.createArticle(title.text.toString(), body.text.toString(), summary.text.toString()) }
                     .onSuccess { showArticle(it) }
                     .onFailure { Toast.makeText(context, it.message, Toast.LENGTH_LONG).show() }
             }.setNegativeButton("Cancel", null).show()
@@ -312,7 +319,21 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         content.removeAllViews()
         heading("NEXUS ARTICLE")
         content.addView(TextView(context).apply { text = article.title; textSize = 25f; setTextColor(ink); setPadding(0, dp(8), 0, dp(8)) })
-        if (article.summary.isNotBlank()) content.addView(TextView(context).apply { text = article.summary; textSize = 14f; setTextColor(muted) })
+        if (article.summary.isNotBlank()) {
+            card("ARTICLE SUMMARY", article.summary) {}
+        }
+        val toc = article.body.lines().mapNotNull { line ->
+            val trimmed = line.trim()
+            when {
+                trimmed.startsWith("## ") -> trimmed.removePrefix("## ").trim()
+                trimmed.startsWith("### ") -> "— " + trimmed.removePrefix("### ").trim()
+                else -> null
+            }
+        }
+        if (toc.isNotEmpty()) {
+            heading("TABLE OF CONTENTS")
+            toc.forEach { item -> card(item, "Section in this article") {} }
+        }
         content.addView(TextView(context).apply { text = renderMarkdown(article.body); textSize = 15f; setTextColor(ink); setTextIsSelectable(true); movementMethod = LinkMovementMethod.getInstance(); setPadding(0, dp(16), 0, dp(20)) })
         val links = graph.edges().filter { it.status != "rejected" && (it.fromId == article.id || it.toId == article.id) }
         heading("RELATED KNOWLEDGE · ${links.size}")
