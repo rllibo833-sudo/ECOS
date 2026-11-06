@@ -305,10 +305,10 @@ private class GraphCanvas(context: Context, private val nodes: List<KnowledgeNod
             MotionEvent.ACTION_UP -> {
                 scaleDetector.onTouchEvent(event)
                 if (kotlin.math.hypot(event.x - downX, event.y - downY) < 14f * resources.displayMetrics.density) {
-                    val hit = positions.entries.minByOrNull { (_, point) -> kotlin.math.hypot(event.x - (point.first * scale + width / 2f * (1f - scale)), event.y - (point.second * scale + height / 2f * (1f - scale))) }
+                    val hit = positions.entries.minByOrNull { (_, point) -> kotlin.math.hypot(event.x - (point.first * scale + (width / 2f + dx) * (1f - scale)), event.y - (point.second * scale + (height / 2f + dy) * (1f - scale))) }
                     val candidate = hit?.let { pair -> nodes.firstOrNull { it.id == pair.key } }
                     val point = hit?.value
-                    if (candidate != null && point != null && kotlin.math.hypot(event.x - (point.first * scale + width / 2f * (1f - scale)), event.y - (point.second * scale + height / 2f * (1f - scale))) < 28f * resources.displayMetrics.density) onNodeTap(candidate)
+                    if (candidate != null && point != null && kotlin.math.hypot(event.x - (point.first * scale + (width / 2f + dx) * (1f - scale)), event.y - (point.second * scale + (height / 2f + dy) * (1f - scale))) < 28f * resources.displayMetrics.density) onNodeTap(candidate)
                 }
                 return true
             }
