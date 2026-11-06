@@ -16,7 +16,7 @@ Explicit, typed, directed relationships with provenance. Examples: belongs_to, a
 Candidate relationships inferred from metadata, extracted text, shared terms, or embeddings. Each candidate carries method, score, and status (suggested/accepted/rejected). Never silently promote semantic candidates to canonical facts.
 
 ## UI
-Kotlin Activity and custom Views; Canvas graph viewport; custom article/library screens; custom dark cinematic design tokens. No Compose or Material UI dependency.
+Kotlin Activity and Android Views; Canvas-rendered brand header, action controls, library cards, and graph viewport. Article/editor text surfaces still use native widgets and are not yet fully custom. No Jetpack Compose or Material Components dependency. PDF pages render offline through Android PdfRenderer with visible-page rasterization and a two-page bitmap cache.
 
 ## Storage
 App-private files plus a JSON catalog for the first milestone. Originals live under files/library/. Catalog lives at files/nexus-catalog.json. Room may be considered after validating the initial model.
