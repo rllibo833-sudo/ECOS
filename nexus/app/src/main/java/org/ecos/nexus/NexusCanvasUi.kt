@@ -17,7 +17,7 @@ class NexusCanvasTile(
     private val density = resources.displayMetrics.density
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (compact) 0xFF18334D.toInt() else 0xFF102237.toInt() }
     private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF294965.toInt(); style = Paint.Style.STROKE; strokeWidth = density }
-    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF2F5FA.toInt(); textSize = (if (compact) 10f else 14f) * density; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL); letterSpacing = .04f }
+    private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF2F5FA.toInt(); textSize = (if (compact) 10f else 14f) * density; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
     private val subtitlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF9BAFC4.toInt(); textSize = 11f * density }
     private val rect = RectF()
     private var pressed = false
@@ -60,7 +60,7 @@ class NexusCanvasTile(
 
 class NexusBrandHeader(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
-    private val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF83C9FF.toInt(); textSize = 12f * density; letterSpacing = .28f; typeface = android.graphics.Typeface.create("sans-serif-medium", 0) }
+    private val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF83C9FF.toInt(); textSize = 12f * density; typeface = android.graphics.Typeface.create("sans-serif-medium", 0) }
     private val headline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF2F5FA.toInt(); textSize = 25f * density; typeface = android.graphics.Typeface.create("sans-serif", 0) }
     private val caption = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF9BAFC4.toInt(); textSize = 13f * density }
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
