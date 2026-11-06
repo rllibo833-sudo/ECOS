@@ -35,7 +35,7 @@ class AssetInspector(private val context: Context) {
         require(source.length() <= maxBytes) { "File is larger than the preview limit" }
         return source.readText(Charsets.UTF_8)
     }
-    fun openExternal(asset: LibraryAsset) {
+    fun share(asset: LibraryAsset) {\n        val source = file(asset)\n        require(source.isFile) { "File is missing" }\n        val uri = FileProvider.getUriForFile(context, context.packageName + ".files", source)\n        val intent = Intent(Intent.ACTION_SEND).setType(asset.mime.ifBlank { "*/*" })\n            .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)\n        context.startActivity(Intent.createChooser(intent, "Share " + asset.name))\n    }\n\n    fun openExternal(asset: LibraryAsset) {
         val source = file(asset)
         require(source.isFile) { "File is missing" }
         val uri: Uri = FileProvider.getUriForFile(context, context.packageName + ".files", source)
