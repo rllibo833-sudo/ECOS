@@ -321,10 +321,17 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         articles.forEach { article -> card(article.title, article.summary.ifBlank { "Personal knowledge article" }) { showArticle(article) } }
     }
 
-    private fun createArticle() {
-        val title = EditText(context).apply { hint = "Article title" }
-        val summary = EditText(context).apply { hint = "Short summary / infobox" }
-        val body = EditText(context).apply { hint = "Article content (Markdown supported)"; minLines = 6; gravity = Gravity.TOP }
+    private fun createArticle() = editArticle(null)
+
+    private fun editArticle(article: KnowledgeNode?) {
+        val title = EditText(context).apply { hint = "Article title"; setText(article?.title.orEmpty()) }
+        val summary = EditText(context).apply { hint = "Short summary / infobox"; setText(article?.summary.orEmpty()) }
+        val body = EditText(context).apply {
+            hint = "Article content (Markdown supported)"
+            minLines = 8
+            gravity = Gravity.TOP
+            setText(article?.body.orEmpty())
+        }
         val box = LinearLayout(context).apply {
             orientation = VERTICAL
             setPadding(dp(20), 0, dp(20), 0)
@@ -332,9 +339,12 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             addView(summary)
             addView(body)
         }
-        AlertDialog.Builder(context).setTitle("New article").setView(box)
+        AlertDialog.Builder(context).setTitle(if (article == null) "New article" else "Edit article").setView(box)
             .setPositiveButton("Save") { _, _ ->
-                runCatching { graph.createArticle(title.text.toString(), body.text.toString(), summary.text.toString()) }
+                runCatching {
+                    if (article == null) graph.createArticle(title.text.toString(), body.text.toString(), summary.text.toString())
+                    else graph.updateArticle(article.id, title.text.toString(), body.text.toString(), summary.text.toString())
+                }
                     .onSuccess { showArticle(it) }
                     .onFailure { Toast.makeText(context, it.message, Toast.LENGTH_LONG).show() }
             }.setNegativeButton("Cancel", null).show()
@@ -344,6 +354,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         releaseMediaViews()
         content.removeAllViews()
         heading("NEXUS ARTICLE")
+        card("EDIT ARTICLE", "Update title, summary, and Markdown content") { editArticle(article) }
         content.addView(TextView(context).apply { text = article.title; textSize = 25f; setTextColor(ink); setPadding(0, dp(8), 0, dp(8)) })
         if (article.summary.isNotBlank()) {
             card("ARTICLE SUMMARY", article.summary) {}
