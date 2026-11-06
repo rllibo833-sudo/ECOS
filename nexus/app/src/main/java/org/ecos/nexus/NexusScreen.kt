@@ -17,6 +17,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ImageView
+import android.widget.VideoView
+import android.widget.MediaController
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -24,6 +27,8 @@ import kotlin.math.sin
 class NexusScreen(context: Context, private val store: LibraryStore, private val graph: KnowledgeGraphStore) : LinearLayout(context) {
     private val inspector = AssetInspector(context)
     private var activePdf: PdfDocumentView? = null
+    private var activeVideo: VideoView? = null
+    private var activeImage: android.graphics.Bitmap? = null
     private val content = LinearLayout(context)
     private val ink = 0xFFF2F5FA.toInt()
     private val muted = 0xFF9BAFC4.toInt()
@@ -54,8 +59,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     fun showLibrary() {
-        activePdf?.close()
-        activePdf = null
+        releaseMediaViews()
         content.removeAllViews()
         val items = store.all()
         heading("LIBRARY  ·  ${items.size} ITEMS")
@@ -89,6 +93,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun showAsset(asset: LibraryAsset) {
+        releaseMediaViews()
         content.removeAllViews()
         heading(asset.category.uppercase())
         card(asset.name, "${readableSize(asset.size)} · stored on this device") {}
@@ -144,8 +149,30 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                     card("PDF could not be opened", it.message ?: "The document may be damaged or encrypted.") {}
                 }
             }
-            "image", "video", "package", "office", "other" -> {
-                card("Open with Android", "Uses an installed viewer. Nexus keeps the original file locally.") {
+            "image" -> {
+                runCatching {
+                    val bitmap = inspector.decodeImagePreview(asset)
+                    activeImage = bitmap
+                    content.addView(ImageView(context).apply {
+                        setImageBitmap(bitmap)
+                        adjustViewBounds = true
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        contentDescription = asset.name
+                    }, LayoutParams(LayoutParams.MATCH_PARENT, dp(420)))
+                }.onFailure { card("Image preview unavailable", it.message ?: "Unsupported image") {} }
+            }
+            "video" -> {
+                runCatching {
+                    val player = VideoView(context)
+                    activeVideo = player
+                    player.setMediaController(MediaController(context))
+                    player.setVideoPath(inspector.file(asset).absolutePath)
+                    content.addView(player, LayoutParams(LayoutParams.MATCH_PARENT, dp(280)))
+                    player.setOnPreparedListener { media -> media.isLooping = false; player.start() }
+                }.onFailure { card("Video preview unavailable", it.message ?: "Unsupported video") {} }
+            }
+            "audio", "package", "office", "other" -> {
+                card("Open with Android", "Uses an installed viewer or player. Nexus keeps the original file locally.") {
                     runCatching { inspector.openExternal(asset) }.onFailure { Toast.makeText(context, it.message ?: "No compatible viewer", Toast.LENGTH_LONG).show() }
                 }
             }
@@ -153,6 +180,15 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             else -> card("Open with Android", "External viewer") { runCatching { inspector.openExternal(asset) } }
         }
         card("BACK TO LIBRARY", "Return to your archive") { showLibrary() }
+    }
+
+    private fun releaseMediaViews() {
+        activePdf?.close()
+        activePdf = null
+        activeVideo?.stopPlayback()
+        activeVideo = null
+        activeImage?.recycle()
+        activeImage = null
     }
 
     private fun renderMarkdown(source: String): CharSequence {
