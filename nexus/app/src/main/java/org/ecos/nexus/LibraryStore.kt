@@ -46,12 +46,15 @@ class LibraryStore(private val context: Context) {
         return when {
             mime.startsWith("image/") -> "image"
             mime.startsWith("video/") -> "video"
-            ext in setOf("zip", "7z", "rar") -> "archive"
+            ext == "zip" -> "archive"
+            ext in setOf("7z", "rar") -> "unsupported-archive"
             ext in setOf("md", "markdown", "mdx") -> "markdown"
             ext in setOf("kt", "java", "py", "js", "ts", "tsx", "jsx", "c", "cpp", "h", "rs", "go", "html", "css", "json", "xml", "yaml", "yml", "toml", "sql", "sh") -> "source"
             ext in setOf("csv", "tsv", "parquet", "jsonl") -> "dataset"
             ext == "apk" -> "package"
-            mime == "application/pdf" || ext in setOf("pdf", "doc", "docx", "txt", "rtf", "odt") -> "document"
+            mime == "application/pdf" || ext == "pdf" -> "pdf"
+            ext in setOf("doc", "docx", "rtf", "odt", "ods", "odp", "xls", "xlsx", "ppt", "pptx") -> "office"
+            ext in setOf("txt", "log") || mime.startsWith("text/") -> "document"
             else -> "other"
         }
     }
