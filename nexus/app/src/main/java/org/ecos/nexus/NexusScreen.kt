@@ -221,26 +221,71 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun renderMarkdown(source: String): CharSequence {
-        val plain = android.text.SpannableStringBuilder()
-        source.lines().forEach { line ->
+        val output = SpannableStringBuilder()
+        var inCode = false
+        source.lines().forEach { raw ->
+            val line = raw.trimEnd()
+            if (line.trim().startsWith("```")) {
+                inCode = !inCode
+                if (!inCode) output.append("\n")
+                return@forEach
+            }
+            if (inCode) {
+                val begin = output.length
+                output.append(line).append("\n")
+                output.setSpan(android.text.style.TypefaceSpan("monospace"), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                output.setSpan(android.text.style.BackgroundColorSpan(0xFF102237.toInt()), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                continue
+            }
             val clean = line.trim()
+            if (clean.startsWith("|") && clean.endsWith("|")) {
+                if (clean.contains("---")) return@forEach
+                val cells = clean.removePrefix("|").removeSuffix("|").split("|").map { it.trim() }
+                val begin = output.length
+                output.append(cells.joinToString("   │   ")).append("\n")
+                output.setSpan(android.text.style.TypefaceSpan("monospace"), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                output.setSpan(android.text.style.BackgroundColorSpan(0xFF102237.toInt()), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                return@forEach
+            }
+            val begin = output.length
             when {
-                clean.startsWith("# ") -> plain.append(clean.removePrefix("# ").uppercase()).append("\n\n")
-                clean.startsWith("## ") -> plain.append(clean.removePrefix("## ")).append("\n\n")
-                clean.startsWith("### ") -> plain.append(clean.removePrefix("### ")).append("\n")
-                clean.startsWith("- ") || clean.startsWith("* ") -> plain.append("• ").append(clean.drop(2)).append("\n")
-                clean.startsWith("> ") -> plain.append("  ").append(clean.drop(2)).append("\n")
-                clean.isBlank() -> plain.append("\n")
-                else -> plain.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\\$1").replace(Regex("\\*(.+?)\\*"), "\\$1")).append("\n")
+                clean.startsWith("# ") -> output.append(clean.drop(2).uppercase()).append("\n\n")
+                clean.startsWith("## ") -> output.append(clean.drop(3)).append("\n\n")
+                clean.startsWith("### ") -> output.append(clean.drop(4)).append("\n")
+                clean.startsWith("- ") || clean.startsWith("* ") -> output.append("• ").append(clean.drop(2)).append("\n")
+                clean.startsWith("> ") -> output.append("▏ ").append(clean.drop(2)).append("\n")
+                clean.isBlank() -> output.append("\n")
+                else -> output.append(clean).append("\n")
+            }
+            if (output.length > begin) {
+                if (clean.startsWith("# ")) output.setSpan(android.text.style.RelativeSizeSpan(1.35f), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                else if (clean.startsWith("## ")) output.setSpan(android.text.style.RelativeSizeSpan(1.2f), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                else if (clean.startsWith("### ")) output.setSpan(android.text.style.RelativeSizeSpan(1.08f), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
-        val links = SpannableStringBuilder(plain)
-        val pattern = Regex("\\[\\[([^\\]]+)\\]\\]")
-        pattern.findAll(links).toList().asReversed().forEach { match ->
+        val inlinePatterns = listOf(
+            Regex("\\*\\*(.+?)\\*\\*") to android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+            Regex("(?<!\\*)\\*([^*]+)\\*(?!\\*)") to android.text.style.StyleSpan(android.graphics.Typeface.ITALIC),
+            Regex("~~(.+?)~~") to android.text.style.StrikethroughSpan(),
+            Regex("`([^`]+)`") to android.text.style.TypefaceSpan("monospace")
+        )
+        inlinePatterns.forEach { (pattern, span) ->
+            pattern.findAll(output).toList().asReversed().forEach { match ->
+                val start = match.range.first
+                val end = match.range.last + 1
+                output.delete(end - match.groupValues[1].length - match.value.length + match.groupValues[1].length, end)
+                val contentStart = start
+                val contentEnd = start + match.groupValues[1].length
+                output.replace(start, end - (match.value.length - match.groupValues[1].length), match.groupValues[1])
+                output.setSpan(span, contentStart, contentEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        val links = Regex("\\[\\[([^\\]]+)\\]\\]")
+        links.findAll(output).toList().asReversed().forEach { match ->
             val title = match.groupValues[1].trim()
-            links.replace(match.range.first, match.range.last + 1, title)
-            val endIndex = match.range.first + title.length
-            links.setSpan(object : ClickableSpan() {
+            val start = match.range.first
+            output.replace(start, match.range.last + 1, title)
+            output.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: android.view.View) {
                     val target = graph.nodes().firstOrNull { it.title.equals(title, true) }
                     when {
@@ -250,9 +295,10 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                     }
                 }
                 override fun updateDrawState(ds: TextPaint) { ds.color = accent; ds.isUnderlineText = true }
-            }, match.range.first, endIndex, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }, start, start + title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
-        return links
+        android.text.util.Linkify.addLinks(output, android.text.util.Linkify.WEB_URLS)
+        return output
     }
 
     private fun showGraph() {
