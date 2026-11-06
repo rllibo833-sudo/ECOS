@@ -10,7 +10,12 @@ import java.util.zip.ZipFile
 data class ArchiveEntryInfo(val name: String, val size: Long, val compressedSize: Long, val directory: Boolean)
 
 class AssetInspector(private val context: Context) {
-    fun file(asset: LibraryAsset): File = File(File(context.filesDir, "library"), asset.relativePath)
+    fun file(asset: LibraryAsset): File {
+        val root = File(context.filesDir, "library").canonicalFile
+        val candidate = File(root, asset.relativePath).canonicalFile
+        require(candidate.path.startsWith(root.path + File.separator)) { "Invalid library path" }
+        return candidate
+    }
     fun zipEntries(asset: LibraryAsset, limit: Int = 500): List<ArchiveEntryInfo> {
         val source = file(asset)
         require(source.isFile && source.length() > 0L) { "Archive is missing or empty" }
