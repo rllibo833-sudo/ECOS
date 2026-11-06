@@ -64,18 +64,18 @@ class KnowledgeGraphStore(context: Context) {
         persist(root)
     }
     /** Local, explainable title-token similarity. Suggestions never become canonical automatically. */
-    @Synchronized fun refreshSuggestions(assets: List<LibraryAsset>) {
+    @Synchronized fun refreshSuggestions(assets: List<LibraryAsset>, contentFor: (LibraryAsset) -> String = { "" }) {
         val graphNodes = assets.map(::ensureAssetNode)
-        val existing = edges("semantic").map { setOf(it.fromId, it.toId) }.toMutableSet()
+        val contentById = graphNodes.associate { node -> node.id to (assets.firstOrNull { it.id == node.assetId }?.let(contentFor).orEmpty()) }\n        val existing = edges("semantic").map { setOf(it.fromId, it.toId) }.toMutableSet()
         val additions = mutableListOf<KnowledgeEdge>()
         for (i in graphNodes.indices) for (j in i + 1 until graphNodes.size) {
             val a = graphNodes[i]; val b = graphNodes[j]
-            val left = tokens(a.title); val right = tokens(b.title)
+            val left = tokens(a.title + " " + contentById[a.id].orEmpty()); val right = tokens(b.title + " " + contentById[b.id].orEmpty())
             if (left.isEmpty() || right.isEmpty()) continue
             val overlap = left.intersect(right).size.toDouble()
             val score = overlap / (left.size + right.size - overlap)
             if (score >= 0.20 && setOf(a.id, b.id) !in existing) {
-                additions += KnowledgeEdge(UUID.randomUUID().toString(), a.id, b.id, "similar_title_terms", "semantic", "suggested", "local-title-token-overlap", score)
+                additions += KnowledgeEdge(UUID.randomUUID().toString(), a.id, b.id, "similar_title_terms", "semantic", "suggested", "local-content-token-overlap", score)
                 existing += setOf(a.id, b.id)
             }
         }
