@@ -30,6 +30,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     private var activeVideo: VideoView? = null
     private var activeImage: android.graphics.Bitmap? = null
     private val content = LinearLayout(context)
+    private lateinit var mainScroll: ScrollView
     private val ink = 0xFFF2F5FA.toInt()
     private val muted = 0xFF9BAFC4.toInt()
     private val accent = 0xFF83C9FF.toInt()
@@ -46,8 +47,8 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         nav.addView(button("ARTICLES") { showArticles() }, LayoutParams(0, dp(42), 1f).apply { marginStart = dp(6) })
         addView(nav)
         content.orientation = VERTICAL
-        val scroll = ScrollView(context).apply { isFillViewport = true; addView(content) }
-        addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        mainScroll = ScrollView(context).apply { isFillViewport = true; addView(content) }
+        addView(mainScroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         showLibrary()
     }
 
@@ -355,11 +356,32 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 else -> null
             }
         }
+        val renderedBody = renderMarkdown(article.body)
+        val bodyView = TextView(context).apply {
+            text = renderedBody
+            textSize = 15f
+            setTextColor(ink)
+            setTextIsSelectable(true)
+            movementMethod = LinkMovementMethod.getInstance()
+            setPadding(0, dp(16), 0, dp(20))
+        }
         if (toc.isNotEmpty()) {
             heading("TABLE OF CONTENTS")
-            toc.forEach { item -> card(item, "Section in this article") {} }
+            toc.forEach { label ->
+                val sectionTitle = label.removePrefix("— ").trim()
+                card(label, "Jump to section") {
+                    val offset = bodyView.text.toString().indexOf(sectionTitle)
+                    if (offset >= 0) bodyView.post {
+                        val layout = bodyView.layout
+                        if (layout != null) {
+                            val line = layout.getLineForOffset(offset)
+                            mainScroll.smoothScrollTo(0, bodyView.top + layout.getLineTop(line))
+                        }
+                    }
+                }
+            }
         }
-        content.addView(TextView(context).apply { text = renderMarkdown(article.body); textSize = 15f; setTextColor(ink); setTextIsSelectable(true); movementMethod = LinkMovementMethod.getInstance(); setPadding(0, dp(16), 0, dp(20)) })
+        content.addView(bodyView)
         val links = graph.edges().filter { it.status != "rejected" && (it.fromId == article.id || it.toId == article.id) }
         heading("RELATED KNOWLEDGE · ${links.size}")
         links.forEach { edge ->
@@ -367,6 +389,11 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             if (other != null) card(other.title, "${edge.layer} · ${edge.relation}") { if (other.kind == "article") showArticle(other) else store.all().firstOrNull { it.id == other.assetId }?.let(::showAsset) }
         }
         card("BACK TO ARTICLES", "Return to encyclopedia") { showArticles() }
+    }
+
+    override fun onDetachedFromWindow() {
+        releaseMediaViews()
+        super.onDetachedFromWindow()
     }
 
     private fun readableSize(n: Long) = when { n < 1024 -> "$n B"; n < 1024 * 1024 -> "%.1f KB".format(n / 1024f); else -> "%.1f MB".format(n / (1024f * 1024f)) }
