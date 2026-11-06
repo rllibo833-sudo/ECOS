@@ -2,6 +2,9 @@ package org.ecos.nexus
 
 import android.app.Activity
 import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 
@@ -18,6 +21,39 @@ class MainActivity : Activity() {
         graph.refreshSuggestions(library.all())
         ui = NexusScreen(this, library, graph)
         setContentView(ui)
+    }
+
+
+    fun requestMediaPermissions() {
+        val permissions = when {
+            Build.VERSION.SDK_INT >= 34 -> arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_AUDIO,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            )
+            Build.VERSION.SDK_INT >= 33 -> arrayOf(
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        val missing = permissions.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) {
+            Toast.makeText(this, "Media access is already granted", Toast.LENGTH_SHORT).show()
+        } else {
+            requestPermissions(missing.toTypedArray(), MEDIA_PERMISSION_REQUEST)
+        }
+    }
+
+    @Deprecated("Kept for broad Android compatibility.")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == MEDIA_PERMISSION_REQUEST) {
+            val granted = grantResults.count { it == PackageManager.PERMISSION_GRANTED }
+            Toast.makeText(this, "$granted of ${grantResults.size} media permissions granted", Toast.LENGTH_LONG).show()
+        }
     }
 
     fun importFiles() {
@@ -53,5 +89,5 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    companion object { private const val IMPORT_REQUEST = 4101 }
+    companion object { private const val IMPORT_REQUEST = 4101; private const val MEDIA_PERMISSION_REQUEST = 4102 }
 }
