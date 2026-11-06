@@ -23,6 +23,24 @@ class KnowledgeGraphStore(context: Context) {
         nodes().firstOrNull { it.assetId == asset.id }?.let { return it }
         return KnowledgeNode(UUID.randomUUID().toString(), asset.name, "asset", asset.id).also(::writeNode)
     }
+    @Synchronized fun removeAssetNode(assetId: String) {
+        val root = read()
+        val nodes = root.getJSONArray("nodes")
+        val removedIds = mutableSetOf<String>()
+        for (i in nodes.length() - 1 downTo 0) {
+            val node = nodes.getJSONObject(i)
+            if (node.optString("assetId") == assetId) {
+                removedIds += node.optString("id")
+                nodes.remove(i)
+            }
+        }
+        val edges = root.getJSONArray("edges")
+        for (i in edges.length() - 1 downTo 0) {
+            val edge = edges.getJSONObject(i)
+            if (edge.optString("fromId") in removedIds || edge.optString("toId") in removedIds) edges.remove(i)
+        }
+        persist(root)
+    }
     @Synchronized fun createArticle(title: String, body: String, summary: String = ""): KnowledgeNode {
         require(title.isNotBlank()) { "Article title is required" }
         return KnowledgeNode(UUID.randomUUID().toString(), title.trim(), "article", summary = summary.trim(), body = body).also(::writeNode)
