@@ -152,9 +152,12 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             val endIndex = match.range.first + title.length
             links.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: android.view.View) {
-                    val article = graph.nodes().firstOrNull { it.kind == "article" && it.title.equals(title, true) }
-                    if (article != null) showArticle(article)
-                    else Toast.makeText(context, "Article not found: " + title, Toast.LENGTH_SHORT).show()
+                    val target = graph.nodes().firstOrNull { it.title.equals(title, true) }
+                    when {
+                        target == null -> Toast.makeText(context, "Knowledge item not found: " + title, Toast.LENGTH_SHORT).show()
+                        target.kind == "article" -> showArticle(target)
+                        else -> store.all().firstOrNull { it.id == target.assetId }?.let(::showAsset)
+                    }
                 }
                 override fun updateDrawState(ds: TextPaint) { ds.color = accent; ds.isUnderlineText = true }
             }, match.range.first, endIndex, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
