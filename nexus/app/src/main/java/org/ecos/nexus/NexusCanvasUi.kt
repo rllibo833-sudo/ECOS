@@ -60,8 +60,8 @@ class NexusCanvasTile(
 
 class NexusBrandHeader(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
-    private val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF83C9FF.toInt(); textSize = 12f * density; typeface = android.graphics.Typeface.create("sans-serif-medium", 0) }
-    private val headline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF2F5FA.toInt(); textSize = 25f * density; typeface = android.graphics.Typeface.create("sans-serif", 0) }
+    private val brand = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF83C9FF.toInt(); textSize = 12f * density; typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL) }
+    private val headline = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFF2F5FA.toInt(); textSize = 25f * density; typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL) }
     private val caption = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF9BAFC4.toInt(); textSize = 13f * density }
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), resolveSize((92 * density).toInt(), heightMeasureSpec))
