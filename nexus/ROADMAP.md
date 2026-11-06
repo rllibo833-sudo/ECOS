@@ -14,7 +14,9 @@ Nexus is a private, offline-first library for all personal work and files: docum
 - [x] Markdown headings, lists, emphasis, and internal `[[Article title]]` links.
 - [x] Read-only ZIP inventory (no extraction).
 - [x] Text/source preview with a bounded 512 KiB preview limit.
-- [x] Office, image, video, and package handoff to Android viewers.\n- [x] Initial in-app PDF reader using Android PdfRenderer, with visible-page rendering and a two-page bitmap cache.\n- [x] Canvas-rendered brand header, action controls, library cards, and graph viewport; article/editor text surfaces still need custom treatment.
+- [x] Office, image, video, and package handoff to Android viewers.
+- [x] Initial in-app PDF reader using Android PdfRenderer, with visible-page rendering and a two-page bitmap cache.
+- [x] Canvas-rendered brand header, action controls, library cards, and graph viewport; article/editor text surfaces still need custom treatment.
 - [x] File import and local indexing moved off the UI thread.
 - [x] CI workflow for unit tests, lint, debug APK, and installable release APK.
 
@@ -24,7 +26,9 @@ Nexus is a private, offline-first library for all personal work and files: docum
 - [ ] Add import progress, cancellation, duplicate detection, and recovery after interrupted copies.
 - [ ] Add file details, safe delete, share/export, and backup/restore.
 - [ ] Add memory-bounded image/video thumbnails and a proper in-app media viewer.
-- [ ] Validate PDF rendering with varied, large, malformed, and password-protected documents; add page navigation/search/zoom.\n- [ ] Finish custom Canvas/View treatment for article reading, editor dialogs, search, and all remaining screens.\n- [ ] Improve document support and Markdown rendering (tables, code blocks, links, images).
+- [ ] Validate PDF rendering with varied, large, malformed, and password-protected documents; add page navigation/search/zoom.
+- [ ] Finish custom Canvas/View treatment for article reading, editor dialogs, search, and all remaining screens.
+- [ ] Improve document support and Markdown rendering (tables, code blocks, links, images).
 - [ ] Add article infoboxes, table of contents, citations, and asset references.
 - [ ] Add graph node selection, focus/neighborhood expansion, zoom, pan, and clustering.
 - [ ] Improve semantic discovery using extracted content; current suggestions use explainable title-token overlap and are not embedding-based semantic understanding.
