@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import java.util.zip.ZipFile
 
 data class ArchiveEntryInfo(val name: String, val size: Long, val compressedSize: Long, val directory: Boolean)
@@ -29,6 +31,21 @@ class AssetInspector(private val context: Context) {
             result
         }
     }
+    fun decodeImagePreview(asset: LibraryAsset, maxDimension: Int = 1600): Bitmap {
+        val source = file(asset)
+        require(source.isFile) { "File is missing" }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(source.absolutePath, bounds)
+        require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported or damaged image" }
+        var sample = 1
+        while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) sample *= 2
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sample
+            inPreferredConfig = Bitmap.Config.RGB_565
+        }
+        return BitmapFactory.decodeFile(source.absolutePath, options) ?: error("Could not decode image")
+    }
+
     fun readText(asset: LibraryAsset, maxBytes: Int = 512 * 1024): String {
         val source = file(asset)
         require(source.isFile) { "File is missing" }
