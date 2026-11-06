@@ -92,6 +92,27 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         content.removeAllViews()
         heading(asset.category.uppercase())
         card(asset.name, "${readableSize(asset.size)} · stored on this device") {}
+        card("FILE DETAILS", "${asset.mime} · ${asset.relativePath}") {
+            AlertDialog.Builder(context).setTitle(asset.name)
+                .setMessage("Type: ${asset.mime}\nCategory: ${asset.category}\nSize: ${readableSize(asset.size)}\nImported: ${java.text.DateFormat.getDateTimeInstance().format(java.util.Date(asset.importedAt))}\nStored privately inside Nexus.")
+                .setPositiveButton("Close", null).show()
+        }
+        card("SHARE ORIGINAL", "Send a read-only copy to another app") {
+            runCatching { inspector.share(asset) }
+                .onFailure { Toast.makeText(context, it.message ?: "Share failed", Toast.LENGTH_LONG).show() }
+        }
+        card("DELETE FROM NEXUS", "Permanently remove this imported copy and its graph node") {
+            AlertDialog.Builder(context).setTitle("Delete imported file?")
+                .setMessage("This removes the private copy from Nexus. The source in its original location is not changed.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete") { _, _ ->
+                    runCatching {
+                        if (!store.delete(asset)) error("Could not delete file")
+                        graph.removeAssetNode(asset.id)
+                    }.onSuccess { showLibrary() }
+                        .onFailure { Toast.makeText(context, it.message ?: "Delete failed", Toast.LENGTH_LONG).show() }
+                }.show()
+        }
         when (asset.category) {
             "markdown", "source", "document", "dataset" -> {
                 val body = runCatching { inspector.readText(asset) }.getOrElse { "Preview unavailable: ${it.message}" }
