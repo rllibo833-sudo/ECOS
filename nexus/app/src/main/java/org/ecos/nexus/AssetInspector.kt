@@ -1,0 +1,41 @@
+package org.ecos.nexus
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+import java.util.zip.ZipFile
+
+data class ArchiveEntryInfo(val name: String, val size: Long, val compressedSize: Long, val directory: Boolean)
+
+class AssetInspector(private val context: Context) {
+    fun file(asset: LibraryAsset): File = File(File(context.filesDir, "library"), asset.relativePath)
+    fun zipEntries(asset: LibraryAsset, limit: Int = 500): List<ArchiveEntryInfo> {
+        val source = file(asset)
+        require(source.isFile && source.length() > 0L) { "Archive is missing or empty" }
+        return ZipFile(source).use { zip ->
+            val result = mutableListOf<ArchiveEntryInfo>()
+            val entries = zip.entries()
+            while (entries.hasMoreElements() && result.size < limit) {
+                val entry = entries.nextElement()
+                result += ArchiveEntryInfo(entry.name, entry.size, entry.compressedSize, entry.isDirectory)
+            }
+            result
+        }
+    }
+    fun readText(asset: LibraryAsset, maxBytes: Int = 512 * 1024): String {
+        val source = file(asset)
+        require(source.isFile) { "File is missing" }
+        require(source.length() <= maxBytes) { "File is larger than the preview limit" }
+        return source.readText(Charsets.UTF_8)
+    }
+    fun openExternal(asset: LibraryAsset) {
+        val source = file(asset)
+        require(source.isFile) { "File is missing" }
+        val uri: Uri = FileProvider.getUriForFile(context, context.packageName + ".files", source)
+        val mime = asset.mime.takeIf { it.isNotBlank() && it != "application/octet-stream" } ?: "*/*"
+        val intent = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(Intent.createChooser(intent, "Open " + asset.name))
+    }
+}
