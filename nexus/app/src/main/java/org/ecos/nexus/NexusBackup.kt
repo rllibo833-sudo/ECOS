@@ -78,6 +78,12 @@ class NexusBackup(private val context: Context, private val library: LibraryStor
             }
             // Validate the graph JSON before replacing the existing archive.
             org.json.JSONObject(stagedKnowledge.readText())
+            val previousCatalog = File(stage, "previous-catalog.json")
+            val previousKnowledge = File(stage, "previous-knowledge.json")
+            val hadCatalog = catalog.isFile
+            val hadKnowledge = knowledge.isFile
+            if (hadCatalog) catalog.copyTo(previousCatalog, overwrite = true)
+            if (hadKnowledge) knowledge.copyTo(previousKnowledge, overwrite = true)
             val oldRoot = File(context.filesDir, "library.restore-old")
             oldRoot.deleteRecursively()
             if (root.exists() && !root.renameTo(oldRoot)) error("Could not stage existing library")
@@ -92,6 +98,8 @@ class NexusBackup(private val context: Context, private val library: LibraryStor
             } catch (error: Exception) {
                 root.deleteRecursively()
                 oldRoot.renameTo(root)
+                if (hadCatalog) replaceFile(previousCatalog, catalog) else catalog.delete()
+                if (hadKnowledge) replaceFile(previousKnowledge, knowledge) else knowledge.delete()
                 throw error
             }
         } finally {
