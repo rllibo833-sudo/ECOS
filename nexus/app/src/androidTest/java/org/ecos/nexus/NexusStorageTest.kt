@@ -23,6 +23,9 @@ class NexusStorageTest {
         context = ApplicationProvider.getApplicationContext()
         File(context.filesDir, "nexus-knowledge.json").delete()
         File(context.filesDir, "nexus-knowledge.json.tmp").delete()
+        File(context.filesDir, "nexus-catalog.json").delete()
+        File(context.filesDir, "library").deleteRecursively()
+        File(context.filesDir, "library.restore-old").deleteRecursively()
     }
 
     @Test fun canonicalRelationshipsPersistAsTypedDirectedEdges() {
