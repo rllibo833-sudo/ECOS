@@ -1,11 +1,11 @@
 package org.ecos.nexus
 
 import android.content.Context
+import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.util.LruCache
-import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import java.io.File
@@ -80,12 +80,17 @@ class AssetThumbnailTile(
             val retriever = MediaMetadataRetriever()
             try {
                 retriever.setDataSource(file.absolutePath)
-                retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)?.let { frame ->
-                    val scale = minOf(168f / frame.width, 128f / frame.height, 1f)
-                    if (scale >= 1f) frame else Bitmap.createScaledBitmap(
-                        frame, (frame.width * scale).toInt().coerceAtLeast(1),
-                        (frame.height * scale).toInt().coerceAtLeast(1), true
-                    ).also { if (it !== frame) frame.recycle() }
+                val frame = if (Build.VERSION.SDK_INT >= 27) {
+                    retriever.getScaledFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 168, 128)
+                } else {
+                    retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                }
+                frame?.let {
+                    val scale = minOf(168f / it.width, 128f / it.height, 1f)
+                    if (scale >= 1f) it else Bitmap.createScaledBitmap(
+                        it, (it.width * scale).toInt().coerceAtLeast(1),
+                        (it.height * scale).toInt().coerceAtLeast(1), true
+                    ).also { scaled -> if (scaled !== it) it.recycle() }
                 }
             } finally {
                 retriever.release()
