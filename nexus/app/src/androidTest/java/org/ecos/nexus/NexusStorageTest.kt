@@ -185,6 +185,37 @@ class NexusStorageTest {
         assertFalse(File(context.filesDir.parentFile, "outside.txt").exists())
     }
 
+    @Test fun docxTextPreviewReadsParagraphsOffline() {
+        val libraryDir = File(context.filesDir, "library").apply { mkdirs() }
+        val file = File(libraryDir, "sample.docx")
+        ZipOutputStream(file.outputStream()).use { zip ->
+            zip.putNextEntry(ZipEntry("word/document.xml"))
+            zip.write("""<w:document xmlns:w="urn:w"><w:body><w:p><w:r><w:t>Offline Nexus</w:t></w:r></w:p><w:p><w:r><w:t>Second paragraph</w:t></w:r></w:p></w:body></w:document>""".toByteArray())
+            zip.closeEntry()
+        }
+        val asset = LibraryAsset("docx", file.name, "office", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", file.name, file.length(), 1)
+        val text = OfficeDocumentReader(context).read(asset)
+        assertTrue(text.contains("Offline Nexus"))
+        assertTrue(text.contains("Second paragraph"))
+    }
+
+    @Test fun xlsxTextPreviewResolvesSharedStrings() {
+        val libraryDir = File(context.filesDir, "library").apply { mkdirs() }
+        val file = File(libraryDir, "sample.xlsx")
+        ZipOutputStream(file.outputStream()).use { zip ->
+            zip.putNextEntry(ZipEntry("xl/sharedStrings.xml"))
+            zip.write("""<sst xmlns="urn:s"><si><t>Knowledge</t></si><si><t>Library</t></si></sst>""".toByteArray())
+            zip.closeEntry()
+            zip.putNextEntry(ZipEntry("xl/worksheets/sheet1.xml"))
+            zip.write("""<worksheet xmlns="urn:s"><sheetData><row><c t="s"><v>0</v></c><c t="s"><v>1</v></c></row></sheetData></worksheet>""".toByteArray())
+            zip.closeEntry()
+        }
+        val asset = LibraryAsset("xlsx", file.name, "office", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.name, file.length(), 1)
+        val text = OfficeDocumentReader(context).read(asset)
+        assertTrue(text.contains("Knowledge"))
+        assertTrue(text.contains("Library"))
+    }
+
     @Test fun importedPdfCanBeRenderedOfflineByNexusReader() {
         val library = File(context.filesDir, "library").apply { mkdirs() }
         val pdf = File(library, "reader-test.pdf")
