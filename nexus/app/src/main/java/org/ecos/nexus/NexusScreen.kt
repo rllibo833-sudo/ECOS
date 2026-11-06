@@ -138,7 +138,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 clean.startsWith("- ") || clean.startsWith("* ") -> out.append("• ").append(clean.drop(2)).append("\n")
                 clean.startsWith("> ") -> out.append("  ").append(clean.drop(2)).append("\n")
                 clean.isBlank() -> out.append("\n")
-                else -> out.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\$1").replace(Regex("\\*(.+?)\\*"), "$1")).append("\n")
+                else -> out.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\$1").replace(Regex("\\*(.+?)\\*"), "\\$1")).append("\n")
             }
         }
         return out
