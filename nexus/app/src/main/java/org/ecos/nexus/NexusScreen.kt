@@ -173,7 +173,10 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         val semantic = graph.edges("semantic").filter { it.status == "suggested" }
         heading("KNOWLEDGE GRAPH")
         card("${nodes.size} NODES · ${canonical.size} CANONICAL LINKS", "Only persisted relationships are drawn. No decorative edges.") {}
-        content.addView(GraphCanvas(context, nodes, canonical + semantic), LayoutParams(LayoutParams.MATCH_PARENT, dp(360)))
+        content.addView(GraphCanvas(context, nodes, canonical + semantic) { node ->
+            if (node.kind == "article") showArticle(node)
+            else store.all().firstOrNull { it.id == node.assetId }?.let(::showAsset)
+        }, LayoutParams(LayoutParams.MATCH_PARENT, dp(360)))
         heading("CANONICAL RELATIONSHIPS")
         canonical.forEach { edge ->
             val from = nodes.firstOrNull { it.id == edge.fromId }?.title ?: edge.fromId
@@ -259,13 +262,20 @@ private class SimpleTextWatcher(private val changed: (String) -> Unit) : android
     override fun afterTextChanged(s: android.text.Editable?) {}
 }
 
-private class GraphCanvas(context: Context, private val nodes: List<KnowledgeNode>, private val edges: List<KnowledgeEdge>) : View(context) {
+private class GraphCanvas(context: Context, private val nodes: List<KnowledgeNode>, private val edges: List<KnowledgeEdge>, private val onNodeTap: (KnowledgeNode) -> Unit) : View(context) {
     private val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF63B9F4.toInt() }
     private val canonicalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF62D6B0.toInt(); strokeWidth = 3f }
     private val semanticPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFB49BFF.toInt(); strokeWidth = 2f; pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 8f), 0f) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFEAF4FF.toInt(); textSize = 23f }
-    private var dx = 0f; private var dy = 0f; private var lastX = 0f; private var lastY = 0f; private var scale = 1f
+    private var dx = 0f; private var dy = 0f; private var lastX = 0f; private var lastY = 0f; private var downX = 0f; private var downY = 0f; private var scale = 1f
     private val positions = mutableMapOf<String, Pair<Float, Float>>()
+    private val scaleDetector = android.view.ScaleGestureDetector(context, object : android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: android.view.ScaleGestureDetector): Boolean {
+            scale = (scale * detector.scaleFactor).coerceIn(0.55f, 2.5f)
+            invalidate()
+            return true
+        }
+    })
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas); canvas.drawColor(0xFF091827.toInt())
         if (nodes.isEmpty()) { canvas.drawText("Import files or create an article", 24f, height / 2f, labelPaint); return }
@@ -289,9 +299,19 @@ private class GraphCanvas(context: Context, private val nodes: List<KnowledgeNod
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; return true }
-            MotionEvent.ACTION_MOVE -> { dx += event.x - lastX; dy += event.y - lastY; lastX = event.x; lastY = event.y; invalidate(); return true }
-            MotionEvent.ACTION_UP -> return true
+            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; downX = event.x; downY = event.y; scaleDetector.onTouchEvent(event); return true }
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> { scaleDetector.onTouchEvent(event); return true }
+            MotionEvent.ACTION_MOVE -> { scaleDetector.onTouchEvent(event); if (!scaleDetector.isInProgress && event.pointerCount == 1) { dx += event.x - lastX; dy += event.y - lastY }; lastX = event.x; lastY = event.y; invalidate(); return true }
+            MotionEvent.ACTION_UP -> {
+                scaleDetector.onTouchEvent(event)
+                if (kotlin.math.hypot(event.x - downX, event.y - downY) < 14f * resources.displayMetrics.density) {
+                    val hit = positions.entries.minByOrNull { (_, point) -> kotlin.math.hypot(event.x - (point.first * scale + width / 2f * (1f - scale)), event.y - (point.second * scale + height / 2f * (1f - scale))) }
+                    val candidate = hit?.let { pair -> nodes.firstOrNull { it.id == pair.key } }
+                    val point = hit?.value
+                    if (candidate != null && point != null && kotlin.math.hypot(event.x - (point.first * scale + width / 2f * (1f - scale)), event.y - (point.second * scale + height / 2f * (1f - scale))) < 28f * resources.displayMetrics.density) onNodeTap(candidate)
+                }
+                return true
+            }
         }
         return true
     }
