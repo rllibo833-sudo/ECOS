@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.text.InputType
 import android.text.SpannableStringBuilder
 import android.text.style.ClickableSpan
-import android.text.style.ForegroundColorSpan
 import android.text.TextPaint
 import android.text.method.LinkMovementMethod
 import android.view.Gravity
@@ -18,7 +17,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import java.io.File
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -170,7 +168,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         graph.refreshSuggestions(assets)
         val nodes = graph.nodes()
         val canonical = graph.edges("canonical")
-        val semantic = graph.edges("semantic").filter { it.status == "suggested" }
+        val semantic = graph.edges("semantic").filter { it.status != "rejected" }
         heading("KNOWLEDGE GRAPH")
         card("${nodes.size} NODES · ${canonical.size} CANONICAL LINKS", "Only persisted relationships are drawn. No decorative edges.") {}
         content.addView(GraphCanvas(context, nodes, canonical + semantic) { node ->
@@ -187,12 +185,14 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         semantic.forEach { edge ->
             val from = nodes.firstOrNull { it.id == edge.fromId }?.title ?: "?"
             val to = nodes.firstOrNull { it.id == edge.toId }?.title ?: "?"
-            card("$from  ≈  $to", "${edge.relation} · ${"%.0f".format(edge.score * 100)}% title-term overlap") {
-                AlertDialog.Builder(context).setTitle("Semantic suggestion")
-                    .setMessage("Accept this suggestion as a reviewed semantic relation?")
-                    .setPositiveButton("Accept") { _, _ -> graph.reviewSemantic(edge.id, true); showGraph() }
-                    .setNegativeButton("Reject") { _, _ -> graph.reviewSemantic(edge.id, false); showGraph() }
-                    .setNeutralButton("Cancel", null).show()
+            card("$from  ≈  $to", "${edge.status} · ${edge.relation} · ${"%.0f".format(edge.score * 100)}% title-term overlap") {
+                if (edge.status == "suggested") {
+                    AlertDialog.Builder(context).setTitle("Semantic suggestion")
+                        .setMessage("Accept this suggestion as a reviewed semantic relation?")
+                        .setPositiveButton("Accept") { _, _ -> graph.reviewSemantic(edge.id, true); showGraph() }
+                        .setNegativeButton("Reject") { _, _ -> graph.reviewSemantic(edge.id, false); showGraph() }
+                        .setNeutralButton("Cancel", null).show()
+                }
             }
         }
         card("CREATE CANONICAL LINK", "Choose two existing items and define a typed relationship") { createCanonicalLink(nodes) }
@@ -244,7 +244,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         content.addView(TextView(context).apply { text = article.title; textSize = 25f; setTextColor(ink); setPadding(0, dp(8), 0, dp(8)) })
         if (article.summary.isNotBlank()) content.addView(TextView(context).apply { text = article.summary; textSize = 14f; setTextColor(muted) })
         content.addView(TextView(context).apply { text = renderMarkdown(article.body); textSize = 15f; setTextColor(ink); setTextIsSelectable(true); movementMethod = LinkMovementMethod.getInstance(); setPadding(0, dp(16), 0, dp(20)) })
-        val links = graph.edges().filter { it.fromId == article.id || it.toId == article.id }
+        val links = graph.edges().filter { it.status != "rejected" && (it.fromId == article.id || it.toId == article.id) }
         heading("RELATED KNOWLEDGE · ${links.size}")
         links.forEach { edge ->
             val other = graph.nodes().firstOrNull { it.id == if (edge.fromId == article.id) edge.toId else edge.fromId }
