@@ -157,7 +157,12 @@ class MainActivity : Activity() {
             }
             val assets = library.all()
             assets.forEach(graph::ensureAssetNode)
-            graph.refreshSuggestions(assets)
+            val inspector = AssetInspector(this)
+            graph.refreshSuggestions(assets) { asset ->
+                if (asset.category in setOf("markdown", "source", "document", "dataset")) {
+                    runCatching { inspector.readTextPrefix(asset, 64 * 1024) }.getOrDefault("")
+                } else ""
+            }
             runOnUiThread {
                 if (dialog.isShowing) dialog.dismiss()
                 ui.showLibrary()
