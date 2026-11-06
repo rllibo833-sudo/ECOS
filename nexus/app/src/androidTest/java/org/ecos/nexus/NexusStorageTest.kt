@@ -67,4 +67,31 @@ class NexusStorageTest {
         assertEquals("docs/readme.md", entries.single().name)
         assertFalse(File(library, "docs").exists())
     }
+    @Test fun offlineBackupRoundTripsKnowledgeGraph() {
+        val library = LibraryStore(context)
+        val graph = KnowledgeGraphStore(context)
+        graph.createArticle("Backup article", "Stored offline")
+        val output = ByteArrayOutputStream()
+        NexusBackup(context, library).exportTo(output)
+
+        File(context.filesDir, "nexus-knowledge.json").delete()
+        NexusBackup(context, library).restoreFrom(ByteArrayInputStream(output.toByteArray()))
+
+        assertEquals("Backup article", KnowledgeGraphStore(context).nodes().single().title)
+    }
+
+    @Test fun backupRestoreRejectsPathTraversal() {
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry("../outside.txt"))
+            zip.write("unsafe".toByteArray())
+            zip.closeEntry()
+        }
+        val result = runCatching {
+            NexusBackup(context, LibraryStore(context)).restoreFrom(ByteArrayInputStream(output.toByteArray()))
+        }
+        assertTrue(result.isFailure)
+        assertFalse(File(context.filesDir.parentFile, "outside.txt").exists())
+    }
+
 }
