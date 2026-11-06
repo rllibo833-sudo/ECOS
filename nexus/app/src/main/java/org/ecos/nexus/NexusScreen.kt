@@ -90,7 +90,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             list.removeAllViews()
             val filtered = store.all().filter { it.name.contains(query, true) || it.category.contains(query, true) }
             filtered.forEach { asset ->
-                list.addView(NexusCanvasTile(context, asset.name, "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}", action = { showAsset(asset) }),
+                list.addView(AssetThumbnailTile(context, asset, "${asset.category.uppercase()}  ·  ${readableSize(asset.size)}") { showAsset(asset) },
                     LayoutParams(LayoutParams.MATCH_PARENT, dp(70)).apply { bottomMargin = dp(8) })
             }
             if (filtered.isEmpty()) list.addView(TextView(context).apply { text = "No matching items."; setTextColor(muted); setPadding(0, dp(16), 0, 0) })
