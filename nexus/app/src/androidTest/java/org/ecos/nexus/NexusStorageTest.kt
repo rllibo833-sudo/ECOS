@@ -1,6 +1,18 @@
 package org.ecos.nexus
 
 import android.content.Context
+import android.content.ContentProvider
+import android.content.ContentValues
+import android.content.ContextWrapper
+import android.content.pm.ProviderInfo
+import android.database.Cursor
+import android.database.MatrixCursor
+import android.net.Uri
+import android.os.ParcelFileDescriptor
+import android.provider.OpenableColumns
+import android.test.mock.MockContentResolver
+import java.io.FileNotFoundException
+import java.io.IOException
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -26,6 +38,82 @@ class NexusStorageTest {
         File(context.filesDir, "nexus-catalog.json").delete()
         File(context.filesDir, "library").deleteRecursively()
         File(context.filesDir, "library.restore-old").deleteRecursively()
+    }
+
+
+    private class FixtureProvider(
+        private val displayName: String,
+        private val bytes: ByteArray,
+        private val failAfterBytes: Int? = null
+    ) : ContentProvider() {
+        override fun onCreate() = true
+        override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
+            val columns = projection ?: arrayOf(OpenableColumns.DISPLAY_NAME)
+            return MatrixCursor(columns).apply {
+                newRow().apply { columns.forEach { add(if (it == OpenableColumns.DISPLAY_NAME) displayName else null) } }
+            }
+        }
+        override fun getType(uri: Uri) = "application/octet-stream"
+        override fun insert(uri: Uri, values: ContentValues?) = null
+        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
+        override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
+        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            val pipe = ParcelFileDescriptor.createReliablePipe()
+            Thread {
+                ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { output ->
+                    val limit = failAfterBytes?.coerceIn(0, bytes.size) ?: bytes.size
+                    if (limit > 0) output.write(bytes, 0, limit)
+                    if (failAfterBytes != null) throw IOException("Simulated interrupted provider stream")
+                }
+            }.apply { uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, _ -> } }.start()
+            return pipe[0]
+        }
+    }
+
+    private fun fixtureContext(name: String, bytes: ByteArray, failAfter: Int? = null): Pair<Context, Uri> {
+        val resolver = MockContentResolver()
+        val provider = FixtureProvider(name, bytes, failAfter)
+        provider.attachInfo(context, ProviderInfo().apply { authority = "nexus.fixture" })
+        resolver.addProvider("nexus.fixture", provider)
+        val wrapped = object : ContextWrapper(context) {
+            override fun getContentResolver() = resolver
+        }
+        return wrapped to Uri.parse("content://nexus.fixture/file")
+    }
+
+    @Test fun contentResolverImportKeepsCatalogAndOriginalConsistent() {
+        val (source, uri) = fixtureContext("notes.txt", "offline notes".toByteArray())
+        val library = LibraryStore(source)
+        assertTrue(library.importUri(uri))
+        val imported = library.all().single()
+        assertEquals("notes.txt", imported.name)
+        assertEquals("offline notes".length.toLong(), imported.size)
+        assertTrue(File(source.filesDir, "library/${imported.relativePath}").exists())
+        assertEquals(imported.fingerprint, LibraryStore(source).all().single().fingerprint)
+    }
+
+    @Test fun duplicateContentIsNotAddedTwice() {
+        val (source, uri) = fixtureContext("same.txt", "same bytes".toByteArray())
+        val library = LibraryStore(source)
+        assertTrue(library.importUri(uri))
+        assertFalse(library.importUri(uri))
+        assertEquals(1, library.all().size)
+        assertEquals(1, File(source.filesDir, "library").listFiles()?.count { !it.name.endsWith(".partial") })
+    }
+
+    @Test fun zeroByteFileCanBeImportedAndCatalogued() {
+        val (source, uri) = fixtureContext("empty.bin", byteArrayOf())
+        val library = LibraryStore(source)
+        assertTrue(library.importUri(uri))
+        assertEquals(0L, library.all().single().size)
+    }
+
+    @Test fun interruptedImportLeavesNoCatalogEntryOrPartialFile() {
+        val (source, uri) = fixtureContext("broken.bin", ByteArray(1024) { it.toByte() }, 128)
+        val library = LibraryStore(source)
+        assertTrue(runCatching { library.importUri(uri) }.isFailure)
+        assertTrue(library.all().isEmpty())
+        assertTrue(File(source.filesDir, "library").listFiles().orEmpty().isEmpty())
     }
 
     @Test fun canonicalRelationshipsPersistAsTypedDirectedEdges() {
