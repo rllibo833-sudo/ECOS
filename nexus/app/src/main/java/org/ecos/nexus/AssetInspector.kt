@@ -46,6 +46,24 @@ class AssetInspector(private val context: Context) {
         return BitmapFactory.decodeFile(source.absolutePath, options) ?: error("Could not decode image")
     }
 
+    fun readTextPrefix(asset: LibraryAsset, maxBytes: Int = 64 * 1024): String {
+        require(maxBytes > 0)
+        val source = file(asset)
+        require(source.isFile) { "File is missing" }
+        val output = java.io.ByteArrayOutputStream(maxBytes)
+        source.inputStream().use { input ->
+            val buffer = ByteArray(8192)
+            var remaining = maxBytes
+            while (remaining > 0) {
+                val count = input.read(buffer, 0, minOf(buffer.size, remaining))
+                if (count < 0) break
+                output.write(buffer, 0, count)
+                remaining -= count
+            }
+        }
+        return output.toString(Charsets.UTF_8.name())
+    }
+
     fun readText(asset: LibraryAsset, maxBytes: Int = 512 * 1024): String {
         val source = file(asset)
         require(source.isFile) { "File is missing" }
