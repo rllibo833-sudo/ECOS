@@ -23,6 +23,7 @@ import kotlin.math.sin
 
 class NexusScreen(context: Context, private val store: LibraryStore, private val graph: KnowledgeGraphStore) : LinearLayout(context) {
     private val inspector = AssetInspector(context)
+    private var activePdf: PdfDocumentView? = null
     private val content = LinearLayout(context)
     private val ink = 0xFFF2F5FA.toInt()
     private val muted = 0xFF9BAFC4.toInt()
@@ -64,7 +65,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     fun showLibrary() {
-        content.removeAllViews()
+        activePdf?.close()\n        activePdf = null\n        content.removeAllViews()
         val items = store.all()
         heading("LIBRARY  ·  ${items.size} ITEMS")
         val actions = LinearLayout(context).apply { orientation = HORIZONTAL }
@@ -119,7 +120,22 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 if (entries.isEmpty()) card("Archive could not be read", "Unsupported, damaged, or empty ZIP file") {}
                 entries.forEach { e -> card(e.name, if (e.directory) "Folder" else readableSize(e.size)) {} }
             }
-            "image", "video", "package", "pdf", "office", "other" -> {
+            "pdf" -> {
+                runCatching {
+                    val reader = PdfDocumentView(context, inspector.file(asset))
+                    activePdf = reader
+                    heading("PDF READER · ${reader.pageCount} PAGES")
+                    val scroll = ScrollView(context).apply {
+                        isFillViewport = false
+                        setBackgroundColor(0xFF0D1B2A.toInt())
+                        addView(reader, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+                    }
+                    content.addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, dp(560)))
+                }.onFailure {
+                    card("PDF could not be opened", it.message ?: "The document may be damaged or encrypted.") {}
+                }
+            }
+            "image", "video", "package", "office", "other" -> {
                 card("Open with Android", "Uses an installed viewer. Nexus keeps the original file locally.") {
                     runCatching { inspector.openExternal(asset) }.onFailure { Toast.makeText(context, it.message ?: "No compatible viewer", Toast.LENGTH_LONG).show() }
                 }
