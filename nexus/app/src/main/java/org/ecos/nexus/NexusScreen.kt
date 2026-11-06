@@ -54,7 +54,8 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     fun showLibrary() {
-        activePdf?.close()\n        activePdf = null\n        content.removeAllViews()
+        activePdf?.close()
+        activePdf = null\n        content.removeAllViews()
         val items = store.all()
         heading("LIBRARY  ·  ${items.size} ITEMS")
         val actions = LinearLayout(context).apply { orientation = HORIZONTAL }
