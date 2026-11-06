@@ -150,6 +150,28 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                         setBackgroundColor(0xFF0D1B2A.toInt())
                         addView(reader, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
                     }
+                    var pageIndex = 0
+                    val pageLabel = TextView(context).apply {
+                        text = "PAGE 1 / ${reader.pageCount}"
+                        setTextColor(ink)
+                        gravity = Gravity.CENTER
+                        textSize = 12f
+                    }
+                    val controls = LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        addView(button("PREVIOUS") {
+                            pageIndex = (pageIndex - 1).coerceAtLeast(0)
+                            pageLabel.text = "PAGE ${pageIndex + 1} / ${reader.pageCount}"
+                            scroll.smoothScrollTo(0, reader.pageTop(pageIndex))
+                        }, LayoutParams(0, dp(42), 1f))
+                        addView(pageLabel, LayoutParams(0, dp(42), 1f))
+                        addView(button("NEXT") {
+                            pageIndex = (pageIndex + 1).coerceAtMost(reader.pageCount - 1)
+                            pageLabel.text = "PAGE ${pageIndex + 1} / ${reader.pageCount}"
+                            scroll.smoothScrollTo(0, reader.pageTop(pageIndex))
+                        }, LayoutParams(0, dp(42), 1f))
+                    }
+                    content.addView(controls)
                     content.addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, dp(560)))
                 }.onFailure {
                     card("PDF could not be opened", it.message ?: "The document may be damaged or encrypted.") {}
