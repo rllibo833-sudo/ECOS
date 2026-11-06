@@ -37,6 +37,7 @@ class PdfDocumentView(context: Context, file: File) : View(context) {
     private var closed = false
 
     val pageCount: Int get() = renderer.pageCount
+    fun pageTop(index: Int): Int = bounds.getOrNull(index.coerceIn(0, bounds.lastIndex))?.top ?: 0
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
