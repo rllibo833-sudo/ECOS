@@ -1,20 +1,14 @@
 package org.ecos.nexus
 
 import android.content.Context
-import android.content.ContentProvider
-import android.content.ContentResolver
-import android.content.res.AssetFileDescriptor
 import android.content.ContentValues
 import android.content.ContextWrapper
-import android.content.pm.ProviderInfo
-import android.database.Cursor
-import android.database.MatrixCursor
 import android.net.Uri
-import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import java.io.FileNotFoundException
 import java.io.IOException
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,51 +36,13 @@ class NexusStorageTest {
     }
 
 
-    private class FixtureProvider(
-        private val displayName: String,
-        private val bytes: ByteArray,
-        private val failAfterBytes: Int? = null
-    ) : ContentProvider() {
-        override fun onCreate() = true
-        override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
-            val columns = projection ?: arrayOf(OpenableColumns.DISPLAY_NAME)
-            return MatrixCursor(columns).apply {
-                newRow().apply { columns.forEach { add(if (it == OpenableColumns.DISPLAY_NAME) displayName else null) } }
-            }
-        }
-        override fun getType(uri: Uri) = "application/octet-stream"
-        override fun insert(uri: Uri, values: ContentValues?) = null
-        override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?) = 0
-        override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?) = 0
-        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
-            val pipe = ParcelFileDescriptor.createReliablePipe()
-            Thread {
-                ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { output ->
-                    val limit = failAfterBytes?.coerceIn(0, bytes.size) ?: bytes.size
-                    if (limit > 0) output.write(bytes, 0, limit)
-                    if (failAfterBytes != null) throw IOException("Simulated interrupted provider stream")
-                }
-            }.apply { uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, _ -> } }.start()
-            return pipe[0]
-        }
-    }
-
     private fun fixtureContext(name: String, bytes: ByteArray, failAfter: Int? = null): Pair<Context, Uri> {
-        val provider = FixtureProvider(name, bytes, failAfter)
-        provider.attachInfo(context, ProviderInfo().apply { authority = "nexus.fixture" })
-        val resolver = object : ContentResolver(context) {
-            override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? =
-                provider.query(uri, projection, selection, selectionArgs, sortOrder)
-            override fun getType(uri: Uri): String? = provider.getType(uri)
-            override fun openAssetFileDescriptor(uri: Uri, mode: String): AssetFileDescriptor {
-                val descriptor = provider.openFile(uri, mode)
-                return AssetFileDescriptor(descriptor, 0, bytes.size.toLong())
-            }
-        }
+        FixtureContentProvider.files["/file"] = FixtureContentProvider.Payload(name, bytes, failAfter)
+        val providerContext = InstrumentationRegistry.getInstrumentation().context
         val wrapped = object : ContextWrapper(context) {
-            override fun getContentResolver() = resolver
+            override fun getContentResolver() = providerContext.contentResolver
         }
-        return wrapped to Uri.parse("content://nexus.fixture/file")
+        return wrapped to Uri.parse("content://org.ecos.nexus.test.fixture/file")
     }
 
     @Test fun contentResolverImportKeepsCatalogAndOriginalConsistent() {
