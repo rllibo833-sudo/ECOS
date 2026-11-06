@@ -5,6 +5,11 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.text.InputType
+import android.text.SpannableStringBuilder
+import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -105,7 +110,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 val body = runCatching { inspector.readText(asset) }.getOrElse { "Preview unavailable: ${it.message}" }
                 val view = TextView(context).apply {
                     text = if (asset.category == "markdown") renderMarkdown(body) else body
-                    textSize = 14f; setTextColor(ink); setTextIsSelectable(true); setPadding(dp(4), dp(12), dp(4), dp(24))
+                    textSize = 14f; setTextColor(ink); setTextIsSelectable(true); movementMethod = LinkMovementMethod.getInstance(); setPadding(dp(4), dp(12), dp(4), dp(24))
                     typeface = if (asset.category == "source" || asset.category == "dataset") android.graphics.Typeface.MONOSPACE else android.graphics.Typeface.DEFAULT
                 }
                 content.addView(view)
@@ -128,20 +133,35 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
     }
 
     private fun renderMarkdown(source: String): CharSequence {
-        val out = android.text.SpannableStringBuilder()
+        val plain = android.text.SpannableStringBuilder()
         source.lines().forEach { line ->
             val clean = line.trim()
             when {
-                clean.startsWith("# ") -> out.append(clean.removePrefix("# ").uppercase()).append("\n\n")
-                clean.startsWith("## ") -> out.append(clean.removePrefix("## ")).append("\n\n")
-                clean.startsWith("### ") -> out.append(clean.removePrefix("### ")).append("\n")
-                clean.startsWith("- ") || clean.startsWith("* ") -> out.append("• ").append(clean.drop(2)).append("\n")
-                clean.startsWith("> ") -> out.append("  ").append(clean.drop(2)).append("\n")
-                clean.isBlank() -> out.append("\n")
-                else -> out.append(clean.replace(Regex("\\*\\*(.+?)\\*\\*"), "\$1").replace(Regex("\\*(.+?)\\*"), "\\$1")).append("\n")
+                clean.startsWith("# ") -> plain.append(clean.removePrefix("# ").uppercase()).append("\\n\\n")
+                clean.startsWith("## ") -> plain.append(clean.removePrefix("## ")).append("\\n\\n")
+                clean.startsWith("### ") -> plain.append(clean.removePrefix("### ")).append("\\n")
+                clean.startsWith("- ") || clean.startsWith("* ") -> plain.append("• ").append(clean.drop(2)).append("\\n")
+                clean.startsWith("> ") -> plain.append("  ").append(clean.drop(2)).append("\\n")
+                clean.isBlank() -> plain.append("\\n")
+                else -> plain.append(clean.replace(Regex("\\\\*\\\\*(.+?)\\\\*\\\\*"), "\\$1").replace(Regex("\\\\*(.+?)\\\\*"), "\\$1")).append("\\n")
             }
         }
-        return out
+        val links = SpannableStringBuilder(plain)
+        val pattern = Regex("\\\\[\\\\[([^\\\\]]+)\\\\]\\\\]")
+        pattern.findAll(links).toList().asReversed().forEach { match ->
+            val title = match.groupValues[1].trim()
+            links.replace(match.range.first, match.range.last + 1, title)
+            val endIndex = match.range.first + title.length
+            links.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: android.view.View) {
+                    val article = graph.nodes().firstOrNull { it.kind == "article" && it.title.equals(title, true) }
+                    if (article != null) showArticle(article)
+                    else Toast.makeText(context, "Article not found: " + title, Toast.LENGTH_SHORT).show()
+                }
+                override fun updateDrawState(ds: TextPaint) { ds.color = accent; ds.isUnderlineText = true }
+            }, match.range.first, endIndex, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        return links
     }
 
     private fun showGraph() {
@@ -220,7 +240,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         heading("NEXUS ARTICLE")
         content.addView(TextView(context).apply { text = article.title; textSize = 25f; setTextColor(ink); setPadding(0, dp(8), 0, dp(8)) })
         if (article.summary.isNotBlank()) content.addView(TextView(context).apply { text = article.summary; textSize = 14f; setTextColor(muted) })
-        content.addView(TextView(context).apply { text = renderMarkdown(article.body); textSize = 15f; setTextColor(ink); setTextIsSelectable(true); setPadding(0, dp(16), 0, dp(20)) })
+        content.addView(TextView(context).apply { text = renderMarkdown(article.body); textSize = 15f; setTextColor(ink); setTextIsSelectable(true); movementMethod = LinkMovementMethod.getInstance(); setPadding(0, dp(16), 0, dp(20)) })
         val links = graph.edges().filter { it.fromId == article.id || it.toId == article.id }
         heading("RELATED KNOWLEDGE · ${links.size}")
         links.forEach { edge ->
