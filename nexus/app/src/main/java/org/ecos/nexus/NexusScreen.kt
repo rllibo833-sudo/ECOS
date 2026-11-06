@@ -70,6 +70,12 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
         card("GRANT MEDIA ACCESS", "Optional: allow Nexus to browse device photos, videos, and audio. Document import uses the system picker.") {
             (context as? MainActivity)?.requestMediaPermissions()
         }
+        card("CREATE OFFLINE BACKUP", "Export originals, catalog, and knowledge graph to a ZIP file") {
+            (context as? MainActivity)?.backupArchive()
+        }
+        card("RESTORE BACKUP", "Replace the current library from a Nexus backup ZIP") {
+            (context as? MainActivity)?.restoreArchive()
+        }
         val search = EditText(context).apply {
             hint = "Search your archive"; setHintTextColor(muted); setTextColor(ink); textSize = 14f
             inputType = InputType.TYPE_CLASS_TEXT
