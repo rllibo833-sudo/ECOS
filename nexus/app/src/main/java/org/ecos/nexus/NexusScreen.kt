@@ -235,7 +235,7 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
                 output.append(line).append("\n")
                 output.setSpan(android.text.style.TypefaceSpan("monospace"), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 output.setSpan(android.text.style.BackgroundColorSpan(0xFF102237.toInt()), begin, output.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                continue
+                return@forEach
             }
             val clean = line.trim()
             if (clean.startsWith("|") && clean.endsWith("|")) {
