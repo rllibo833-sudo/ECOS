@@ -7,11 +7,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.app.AlertDialog
+import android.view.Gravity
 
 class MainActivity : Activity() {
     private lateinit var library: LibraryStore
     private lateinit var graph: KnowledgeGraphStore
     private lateinit var ui: NexusScreen
+    @Volatile private var cancelImport = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,18 +78,39 @@ class MainActivity : Activity() {
             data.data?.let { add(it) }
             data.clipData?.let { clip -> for (i in 0 until clip.itemCount) add(clip.getItemAt(i).uri) }
         }.distinct()
-        Toast.makeText(this, "Importing ${uris.size} file(s)…", Toast.LENGTH_SHORT).show()
+        cancelImport = false
+        val progressText = TextView(this).apply { text = "Preparing import…"; setPadding(0, 0, 0, 12) }
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = uris.size.coerceAtLeast(1); progress = 0 }
+        val progressLayout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 8, 24, 8)
+            addView(progressText)
+            addView(progressBar, android.widget.LinearLayout.LayoutParams(-1, 8))
+        }
+        val dialog = AlertDialog.Builder(this).setTitle("Importing files").setView(progressLayout)
+            .setNegativeButton("Cancel") { _, _ -> cancelImport = true }.create()
+        dialog.setOnCancelListener { cancelImport = true }
+        dialog.show()
         Thread {
             var count = 0
-            uris.forEach { uri ->
-                if (runCatching { library.importUri(uri) }.getOrDefault(false)) count++
+            var failed = 0
+            uris.forEachIndexed { index, uri ->
+                if (cancelImport) return@forEachIndexed
+                val result = runCatching { library.importUri(uri) }
+                if (result.getOrDefault(false)) count++ else if (result.isFailure) failed++
+                runOnUiThread {
+                    progressBar.progress = index + 1
+                    progressText.text = "Processed ${index + 1} of ${uris.size}"
+                }
             }
             val assets = library.all()
             assets.forEach(graph::ensureAssetNode)
             graph.refreshSuggestions(assets)
             runOnUiThread {
+                if (dialog.isShowing) dialog.dismiss()
                 ui.showLibrary()
-                Toast.makeText(this, "$count file(s) imported", Toast.LENGTH_SHORT).show()
+                val status = if (cancelImport) "Import cancelled" else "Import complete"
+                Toast.makeText(this, "$status · $count added · $failed failed", Toast.LENGTH_LONG).show()
             }
         }.start()
     }
