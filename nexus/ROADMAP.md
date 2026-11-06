@@ -43,7 +43,7 @@ Nexus is a private, offline-first Android library for personal files and knowled
 ## Remaining work before product acceptance
 
 ### Import, catalog, and file formats
-- [ ] Add end-to-end import tests using ContentResolver/SAF URIs, including catalog consistency, duplicate behavior, zero-byte files, and interrupted imports.
+- [x] Add ContentResolver-backed import integration tests for catalog/original consistency, SHA-256 duplicate rejection, zero-byte files, and interrupted-stream cleanup (emulator CI execution pending).
 - [ ] Add in-library thumbnail tiles for image/video assets; current previews are bounded but library cards remain text-first.
 - [ ] Add broader office-document rendering; currently these files are handed to compatible Android apps.
 - [ ] Add additional archive formats only if safe, with path traversal and decompression-bomb protections.
