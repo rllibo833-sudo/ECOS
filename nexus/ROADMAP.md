@@ -21,6 +21,7 @@ Nexus is a private, offline-first Android library for personal files and knowled
 - [x] Share original files through scoped FileProvider URIs.
 - [x] Bounded image decoding for in-app image preview.
 - [x] In-app video playback using Android VideoView; audio can be handed to an installed player.
+- [x] Release PDF renderer, video playback, and preview bitmap resources when navigating away or when the screen detaches.
 - [x] Read-only ZIP inventory. ZIP entries are not extracted or executed.
 - [x] Bounded text/source prefix extraction and text preview.
 - [x] Offline PDF reader using Android PdfRenderer, visible-page rendering, a two-page bitmap cache, and previous/next page controls.
@@ -31,7 +32,7 @@ Nexus is a private, offline-first Android library for personal files and knowled
 - [x] Semantic candidates stored separately from canonical facts; acceptance/rejection is explicit.
 - [x] Explainable local content-token suggestions use bounded extracted text for up to 200 assets. They are lexical similarity, not embeddings or human-level semantic understanding.
 - [x] Graph draws persisted edges, supports pan/zoom, and opens tapped nodes.
-- [x] Article creation and local persistence, summary field, generated table-of-contents list, and related-knowledge links.
+- [x] Article creation and local persistence, summary field, generated table-of-contents list with section-jump navigation, and related-knowledge links.
 - [x] Internal [[title]] links can navigate to articles and imported assets.
 
 ### Automated checks
@@ -56,7 +57,6 @@ Nexus is a private, offline-first Android library for personal files and knowled
 - [ ] Finish custom Canvas/View styling for article reading, editor fields/dialogs, search, and every remaining screen; several text-entry and article surfaces still use native widgets.
 - [ ] Render Markdown tables, fenced code blocks, images, richer links, and inline emphasis as styled spans.
 - [ ] Add editable articles, explicit infobox fields, citation records, and embedded asset references.
-- [ ] Make table-of-contents entries jump to their matching sections.
 
 ### Graph and discovery
 - [ ] Add explicit node selection, focus mode, neighborhood expansion, and clustering for large graphs.
