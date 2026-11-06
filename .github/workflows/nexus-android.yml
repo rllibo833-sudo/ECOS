@@ -31,6 +31,12 @@ jobs:
         run: gradle :app:testDebugUnitTest --no-daemon
       - name: Android lint
         run: gradle :app:lintDebug --no-daemon
+      - name: Instrumented storage and graph tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          script: gradle :app:connectedDebugAndroidTest --no-daemon
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
       - name: Build installable release APK
