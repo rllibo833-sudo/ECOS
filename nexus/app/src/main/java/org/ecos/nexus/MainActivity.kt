@@ -10,7 +10,6 @@ import android.widget.Toast
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.app.AlertDialog
-import android.view.Gravity
 
 class MainActivity : Activity() {
     private lateinit var library: LibraryStore
@@ -61,6 +60,23 @@ class MainActivity : Activity() {
         }
     }
 
+    fun backupArchive() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/zip"
+            putExtra(Intent.EXTRA_TITLE, "Nexus-Backup.zip")
+        }
+        startActivityForResult(intent, BACKUP_REQUEST)
+    }
+
+    fun restoreArchive() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/zip"
+        }
+        startActivityForResult(intent, RESTORE_REQUEST)
+    }
+
     fun importFiles() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -73,7 +89,43 @@ class MainActivity : Activity() {
     @Deprecated("Kept for broad Android compatibility.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != IMPORT_REQUEST || resultCode != RESULT_OK || data == null) return
+        if (resultCode != RESULT_OK || data?.data == null) return
+        if (requestCode == BACKUP_REQUEST) {
+            val uri = data.data!!
+            Thread {
+                val result = runCatching {
+                    contentResolver.openOutputStream(uri)?.use { NexusBackup(this, library).exportTo(it) }
+                        ?: error("Could not open backup destination")
+                }
+                runOnUiThread {
+                    Toast.makeText(this, if (result.isSuccess) "Nexus backup created" else "Backup failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                }
+            }.start()
+            return
+        }
+        if (requestCode == RESTORE_REQUEST) {
+            val uri = data.data!!
+            AlertDialog.Builder(this).setTitle("Restore Nexus backup?")
+                .setMessage("This replaces the current Nexus library and knowledge graph with the selected backup.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Restore") { _, _ ->
+                    Thread {
+                        val result = runCatching {
+                            contentResolver.openInputStream(uri)?.use { NexusBackup(this, library).restoreFrom(it) }
+                                ?: error("Could not open backup")
+                        }
+                        runOnUiThread {
+                            if (result.isSuccess) {
+                                library.all().forEach(graph::ensureAssetNode)
+                                ui.showLibrary()
+                            }
+                            Toast.makeText(this, if (result.isSuccess) "Backup restored" else "Restore failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }.start()
+                }.show()
+            return
+        }
+        if (requestCode != IMPORT_REQUEST) return
         val uris = buildList {
             data.data?.let { add(it) }
             data.clipData?.let { clip -> for (i in 0 until clip.itemCount) add(clip.getItemAt(i).uri) }
@@ -115,5 +167,5 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    companion object { private const val IMPORT_REQUEST = 4101; private const val MEDIA_PERMISSION_REQUEST = 4102 }
+    companion object { private const val IMPORT_REQUEST = 4101; private const val MEDIA_PERMISSION_REQUEST = 4102; private const val BACKUP_REQUEST = 4103; private const val RESTORE_REQUEST = 4104 }
 }
