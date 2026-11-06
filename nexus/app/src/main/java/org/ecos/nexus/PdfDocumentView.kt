@@ -64,8 +64,9 @@ class PdfDocumentView(context: Context, file: File) : View(context) {
         super.onDraw(canvas)
         canvas.drawColor(backgroundPaint.color)
         if (closed || bounds.isEmpty()) return
-        val visibleTop = scrollY
-        val visibleBottom = scrollY + height
+        val clip = canvas.clipBounds
+        val visibleTop = clip.top
+        val visibleBottom = clip.bottom
         bounds.forEachIndexed { index, rect ->
             if (rect.bottom < visibleTop || rect.top > visibleBottom) return@forEachIndexed
             canvas.drawRect(rect, pagePaint)
