@@ -25,6 +25,8 @@ class LibraryStore(private val context: Context) {
     private val root = File(context.filesDir, "library").apply { mkdirs() }
     private val catalog = File(context.filesDir, "nexus-catalog.json")
 
+    init { root.listFiles()?.filter { it.name.endsWith(".partial") }?.forEach { it.delete() } }
+
     @Synchronized fun all(): List<LibraryAsset> = runCatching {
         val array = JSONArray(if (catalog.exists()) catalog.readText() else "[]")
         (0 until array.length()).map { i ->
