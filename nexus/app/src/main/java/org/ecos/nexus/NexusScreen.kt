@@ -273,11 +273,9 @@ class NexusScreen(context: Context, private val store: LibraryStore, private val
             pattern.findAll(output).toList().asReversed().forEach { match ->
                 val start = match.range.first
                 val end = match.range.last + 1
-                output.delete(end - match.groupValues[1].length - match.value.length + match.groupValues[1].length, end)
-                val contentStart = start
-                val contentEnd = start + match.groupValues[1].length
-                output.replace(start, end - (match.value.length - match.groupValues[1].length), match.groupValues[1])
-                output.setSpan(span, contentStart, contentEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val replacement = match.groupValues[1]
+                output.replace(start, end, replacement)
+                output.setSpan(span, start, start + replacement.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
         }
         val links = Regex("\\[\\[([^\\]]+)\\]\\]")
